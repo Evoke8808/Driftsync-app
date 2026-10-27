@@ -1,0 +1,4 @@
+pywebview>=5.0.0
+certifi
+psutil>=5.9.0
+# optional, only for the Gemini backup coach:  pip3 install google-genai

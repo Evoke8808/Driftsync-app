@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftSync - Study Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds px-6 md:px-10 py-6 flex flex-col">
+
+    <header class="flex items-center justify-between w-full mb-8">
+        <a href="setup.html" class="wordmark serif"><span class="dot"></span>driftsync</a>
+        <nav class="flex items-center gap-1">
+            <a href="index.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>
+                Focus timer
+            </a>
+            <a href="setup.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                Setup
+            </a>
+            <button onclick="window.pywebview.api.open_dashboard()" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Insights
+            </button>
+            <span id="userBadge" class="user-chip ml-2"><span class="avatar">G</span><span>Guest</span></span>
+        </nav>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+        <!-- Left: planner form -->
+        <div class="lg:col-span-5 space-y-6">
+            <div class="card p-6">
+                <span id="sourceBadge" class="tag tag-quiet">AI study planner</span>
+                <h1 class="serif text-[28px] leading-tight mt-3">Plan your exam prep</h1>
+                <p class="text-sm muted mt-1 mb-6">A day-by-day schedule with breaks, revision and a light exam day.</p>
+
+                <form id="timetableForm" onsubmit="generateSchedule(event)" class="space-y-4">
+                    <div>
+                        <label class="label" for="subjectInput">Subject</label>
+                        <input id="subjectInput" type="text" required placeholder="e.g. Data Structures & Algorithms" value="Data Structures & Algorithms" class="input">
+                    </div>
+
+                    <div>
+                        <label class="label" for="moduleInput">Modules / chapters</label>
+                        <div class="flex gap-2 mb-2.5">
+                            <input id="moduleInput" type="text" placeholder="e.g. Binary Trees & Heaps"
+                                   onkeydown="if(event.key === 'Enter'){ event.preventDefault(); addModule(); }" class="input">
+                            <button type="button" onclick="addModule()" class="btn btn-secondary">Add</button>
+                        </div>
+                        <div id="moduleChips" class="flex flex-wrap gap-2 min-h-[38px]"></div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                            <label class="label" for="daysInput">Days to exam</label>
+                            <input id="daysInput" type="number" min="1" max="14" value="4" required class="input tnum">
+                        </div>
+                        <div>
+                            <label class="label" for="hoursInput">Hours / day</label>
+                            <input id="hoursInput" type="number" min="1" max="16" value="6" required class="input tnum">
+                        </div>
+                        <div>
+                            <label class="label" for="startTimeInput">Start time</label>
+                            <input id="startTimeInput" type="text" value="09:00 AM" placeholder="09:00 AM" required class="input tnum">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-block mt-2">Generate plan</button>
+                </form>
+            </div>
+
+            <div id="tipsCard" class="card p-6 hidden">
+                <h3 class="serif text-lg mb-3">A few things that help</h3>
+                <ul id="tipsList" class="space-y-2.5 text-sm muted"></ul>
+            </div>
+        </div>
+
+        <!-- Right: schedule -->
+        <div class="lg:col-span-7 flex flex-col">
+            <div class="flex justify-between items-baseline mb-4">
+                <h2 class="serif text-xl">Your schedule</h2>
+                <span id="slotCountBadge" class="text-xs faint">Ready to plan</span>
+            </div>
+
+            <div id="loadingState" class="hidden card p-12 text-center my-auto">
+                <div class="spinner mx-auto mb-5"></div>
+                <h3 class="font-semibold">Building your plan…</h3>
+                <p class="text-sm muted mt-1">Spacing out modules, breaks and revision.</p>
+            </div>
+
+            <div id="emptyState" class="card p-12 text-center my-auto">
+                <svg class="mx-auto mb-4" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4M8 14h3M8 17h6"/></svg>
+                <h3 class="serif text-lg">No plan yet</h3>
+                <p class="text-sm muted max-w-sm mx-auto mt-1.5">
+                    Add your modules and timeline on the left, then generate a plan. Every study block gets a one-click focus timer.
+                </p>
+            </div>
+
+            <div id="scheduleContainer" class="hidden space-y-5 overflow-y-auto max-h-[76vh] pr-1"></div>
+        </div>
+    </main>
+
+    <script>
+        let modules = ["Arrays & Linked Lists", "Stacks & Queues", "Trees & Graphs", "Dynamic Programming"];
+        let renderedSlots = [];   // slots of the current plan; buttons refer to them by index
+
+        function renderModuleChips() {
+            const container = document.getElementById('moduleChips');
+            container.innerHTML = modules.map((mod, idx) => `
+                <span class="chip badge-active" style="cursor:default">
+                    ${escapeHtml(mod)}
+                    <button type="button" onclick="removeModule(${idx})" title="Remove" class="ml-1 opacity-70 hover:opacity-100" style="color:inherit">×</button>
+                </span>`).join('');
+        }
+
+        function addModule() {
+            const input = document.getElementById('moduleInput');
+            const val = input.value.trim();
+            if (val && !modules.includes(val)) {
+                modules.push(val);
+                input.value = '';
+                renderModuleChips();
+            }
+        }
+
+        function removeModule(idx) {
+            modules.splice(idx, 1);
+            renderModuleChips();
+        }
+
+        async function initUserBadge() {
+            try {
+                const user = await window.pywebview.api.get_current_user();
+                if (user && user.username) {
+                    document.getElementById('userBadge').innerHTML =
+                        `<span class="avatar">${escapeHtml(user.username.charAt(0))}</span><span>${escapeHtml(user.username)}</span>`;
+                }
+            } catch(e){}
+        }
+
+        function setSubmitting(on) {
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = on;
+            submitBtn.innerText = on ? 'Planning…' : 'Generate plan';
+        }
+
+        async function generateSchedule(e) {
+            e.preventDefault();
+            if (modules.length === 0) {
+                alert("Please add at least one module!");
+                return;
+            }
+
+            const subject = document.getElementById('subjectInput').value.trim();
+            const days = parseInt(document.getElementById('daysInput').value);
+            const hours = parseInt(document.getElementById('hoursInput').value);
+            const startTime = document.getElementById('startTimeInput').value.trim();
+
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            const scheduleContainer = document.getElementById('scheduleContainer');
+            const tipsCard = document.getElementById('tipsCard');
+
+            setSubmitting(true);
+            emptyState.classList.add('hidden');
+            scheduleContainer.classList.add('hidden');
+            tipsCard.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+
+            try {
+                const res = await window.pywebview.api.generate_timetable(subject, modules, days, hours, startTime);
+                loadingState.classList.add('hidden');
+                setSubmitting(false);
+
+                if (res && res.success && res.timetable) {
+                    // Say which engine actually produced the plan (Groq or the offline planner)
+                    const sourceBadge = document.getElementById('sourceBadge');
+                    if (res.source) {
+                        sourceBadge.innerText = res.source;
+                        sourceBadge.className = res.source.toLowerCase().includes('offline') ? 'tag tag-sand' : 'tag';
+                    }
+                    renderTimetable(res.timetable);
+                } else {
+                    alert((res && res.message) || "Failed to generate timetable. Please try again.");
+                    emptyState.classList.remove('hidden');
+                }
+            } catch(err) {
+                loadingState.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+                setSubmitting(false);
+                alert("Error connecting with timetable engine: " + err);
+            }
+        }
+
+        function isRestTask(task) {
+            const t = task.toLowerCase();
+            return /\b(break|meal|lunch|sleep)\b/.test(t);   // whole words, so "Breakdown of ..." stays a study task
+        }
+
+        function renderTimetable(data) {
+            const container = document.getElementById('scheduleContainer');
+            const tipsCard = document.getElementById('tipsCard');
+            const tipsList = document.getElementById('tipsList');
+            const badge = document.getElementById('slotCountBadge');
+
+            container.innerHTML = '';
+            renderedSlots = [];
+            let studySlots = 0;
+
+            data.days.forEach(day => {
+                const rows = day.slots.map(slot => {
+                    const rest = isRestTask(slot.task);
+                    if (!rest) studySlots++;
+                    const action = rest
+                        ? `<span class="text-[11px] faint shrink-0">Rest</span>`
+                        : `<button type="button" onclick="focusOnTask(${renderedSlots.push(slot) - 1})" class="btn btn-soft-teal btn-sm shrink-0">Focus</button>`;
+                    return `
+                        <div class="card-soft px-4 py-3 flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="tag ${rest ? 'tag-sand' : ''} tnum shrink-0">${escapeHtml(slot.time)}</span>
+                                <span class="text-sm truncate ${rest ? 'muted' : ''}" title="${escapeHtml(slot.task)}">${escapeHtml(slot.task)}</span>
+                            </div>
+                            ${action}
+                        </div>`;
+                }).join('');
+
+                const dayCard = document.createElement('div');
+                dayCard.className = "card p-5 fade-up";
+                dayCard.innerHTML = `
+                    <div class="flex justify-between items-baseline mb-3">
+                        <h3 class="serif text-[17px]">${escapeHtml(day.label)}</h3>
+                        <span class="text-xs faint">${day.slots.length} slots</span>
+                    </div>
+                    <div class="space-y-2">${rows}</div>`;
+                container.appendChild(dayCard);
+            });
+
+            badge.innerText = `${data.days.length} days · ${studySlots} study blocks`;
+            container.classList.remove('hidden');
+
+            if (data.tips && data.tips.length > 0) {
+                tipsList.innerHTML = data.tips.map(t => `
+                    <li class="flex gap-2.5"><span class="text-teal mt-[3px]">•</span><span>${escapeHtml(t)}</span></li>`).join('');
+                tipsCard.classList.remove('hidden');
+            }
+        }
+
+        // --- "Focus" button: sends the slot to the timer ---
+        // "09:00 AM - 09:50 AM" -> 50. Falls back to 30 if the time can't be read.
+        function slotMinutes(timeText) {
+            const parts = String(timeText || '').toUpperCase().match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/g);
+            if (!parts || parts.length < 2) return 30;
+            const read = p => p.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/);
+            const a = read(parts[0]), b = read(parts[1]);
+            const toMin = (m, meridiem) => {
+                let h = parseInt(m[1]);
+                if (meridiem) { h = h % 12; if (meridiem === 'PM') h += 12; }
+                return h * 60 + parseInt(m[2]);
+            };
+            // "3:00-5:00 PM": the first time borrows the second one's AM/PM
+            let diff = toMin(b, b[3]) - toMin(a, a[3] || b[3]);
+            while (diff <= 0) diff += 12 * 60;  // ranges that cross noon or midnight
+            return (diff >= 10 && diff <= 180) ? diff : 30;
+        }
+
+        async function focusOnTask(idx) {
+            const slot = renderedSlots[idx];
+            if (!slot) return;
+            try {
+                // Only change goal and duration; the rest of the setup (blocklist, level) stays as it was
+                await window.pywebview.api.save_session_config({ goal: slot.task, duration: slotMinutes(slot.time) });
+                window.location.href = 'index.html';
+            } catch(e) {
+                console.error("Failed to bridge task to focus timer:", e);
+                window.location.href = 'index.html';
+            }
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.toString()
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderModuleChips();
+            initUserBadge();
+        });
+        window.addEventListener('pywebviewready', initUserBadge);
+    </script>
+</body>
+</html>

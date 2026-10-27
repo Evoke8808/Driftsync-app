@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriftSync - Intention Check</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds flex items-center justify-center p-6">
+<div class="card w-full max-w-md p-7 fade-up">
+
+  <div class="flex items-center gap-3 mb-5">
+    <div class="w-11 h-11 rounded-full grid place-items-center" style="background:var(--coral-soft);border:1px solid var(--coral-line)">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+    </div>
+    <div>
+      <h1 class="serif text-[22px] leading-tight">Let's check in</h1>
+      <p id="frictionReason" class="text-xs muted">You opened a blocked app during a focus block.</p>
+    </div>
+  </div>
+
+  <!-- Filled in by the AI a second or two after YouTube is blocked -->
+  <div id="videoInsight" class="hidden card-soft px-4 py-3 mb-3"></div>
+
+  <div class="card-soft px-4 py-3.5 mb-5">
+    <div class="text-[11px] faint uppercase tracking-[0.14em] mb-1">Your intention</div>
+    <p id="targetGoalDisplay" class="serif text-[17px] leading-snug">Loading…</p>
+  </div>
+
+  <form onsubmit="verifyGoal(event)" class="space-y-5">
+    <div>
+      <label class="label" for="goalInput">Type it to unlock a short break</label>
+      <input id="goalInput" type="text" required autocomplete="off" class="input" placeholder="Type your intention…">
+    </div>
+
+    <div>
+      <div class="flex justify-between items-center mb-2">
+        <span class="label" style="margin:0">Break length</span>
+        <span id="graceLabel" class="text-xs text-sand font-semibold">2 Minutes</span>
+      </div>
+      <div id="graceSeg" class="seg grid-cols-4">
+        <button type="button" onclick="setGrace(1, this)" class="grace-btn">1m</button>
+        <button type="button" onclick="setGrace(2, this)" class="grace-btn is-selected">2m</button>
+        <button type="button" onclick="setGrace(5, this)" class="grace-btn">5m</button>
+        <button type="button" onclick="setGrace(10, this)" class="grace-btn">10m</button>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3 pt-1">
+      <button type="button" onclick="stayOnTask()" class="btn btn-primary">Back to focus</button>
+      <button type="submit" id="unlockBtn" class="btn btn-secondary">Unlock break</button>
+    </div>
+  </form>
+
+  <div id="feedback" class="hidden mt-5"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let requestedGrace = 2;
+
+function setGrace(mins, btnElement) {
+  requestedGrace = mins;
+  document.querySelectorAll('.grace-btn').forEach(el => el.classList.toggle('is-selected', el === btnElement));
+  $('graceLabel').textContent = mins < 1 ? `${Math.round(mins * 60)} Seconds` : `${mins} Minute${mins > 1 ? 's' : ''}`;
+}
+
+function esc(v) {
+  return String(v ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+// Shows what the AI recognised (YouTube only). Checks a few times because labelling takes ~2 seconds.
+let insightTries = 0;
+async function loadVideoInsight() {
+  let info = null;
+  try { info = await window.pywebview.api.get_last_video_insight(); } catch (e) { return; }
+  if (!info) return;                                   // not a YouTube drift
+  const box = $('videoInsight');
+  box.classList.remove('hidden');
+  if (info.pending) {
+    box.innerHTML = `<div class="text-xs muted flex items-center gap-2"><span class="typing"><span></span><span></span><span></span></span> Recognising the video…</div>`;
+    if (++insightTries < 8) setTimeout(loadVideoInsight, 800);
+    return;
+  }
+  const tagClass = info.on_topic ? '' : (info.category === 'Study' ? 'tag-sand' : 'tag-coral');
+  let smartOn = false;
+  try { smartOn = !!(await window.pywebview.api.get_session_config()).smartYouTube; } catch (e) {}
+  const canOverride = smartOn && info.title && info.kind === 'video' && !info.on_topic;
+  if (info.kind === 'browse') $('frictionReason').textContent = 'Your YouTube search time for this block is used up.';
+  else if (info.kind === 'shorts') $('frictionReason').textContent = 'Shorts are blocked during focus blocks.';
+  else if (info.title && !info.on_topic) $('frictionReason').textContent = 'This video doesn’t look related to your intention.';
+  const verdict = info.on_topic
+    ? `<span class="text-teal">Related to your intention</span>, so it won't lower your accuracy.`
+    : `Not related to your intention.`;
+  box.innerHTML = `
+    <div class="flex items-center justify-between gap-3 mb-1.5">
+      <span class="text-[11px] faint uppercase tracking-[0.14em]">You were watching</span>
+      <span class="tag ${tagClass}">${esc(info.category)}</span>
+    </div>
+    <div class="text-sm leading-snug">${info.title ? '“' + esc(info.title) + '”' : 'YouTube (no video open)'}</div>
+    <div class="text-xs muted mt-1">${esc(info.use_case)} · ${verdict}</div>
+    ${canOverride ? `<button type="button" onclick="markAsStudy()" class="btn btn-soft-teal btn-sm mt-3">This is for my studies</button>` : ''}`;
+}
+
+// Demo mode (DEMO_MODE=1 in .env) adds a 10-second break so a live demo doesn't have to wait
+async function applyDemoMode() {
+  let cfg = null;
+  try { cfg = await window.pywebview.api.get_session_config(); } catch (e) { return; }
+  if (!cfg || !cfg.demoMode || document.getElementById('grace10')) return;
+  const seg = $('graceSeg');
+  seg.classList.replace('grid-cols-4', 'grid-cols-5');
+  seg.insertAdjacentHTML('afterbegin', `<button type="button" id="grace10" onclick="setGrace(10/60, this)" class="grace-btn" title="Demo">10s</button>`);
+  setGrace(10 / 60, document.getElementById('grace10'));
+}
+
+async function loadGoal() {
+  try {
+    const config = await window.pywebview.api.get_session_config();
+    if (config && config.goal) {
+      $('targetGoalDisplay').textContent = config.goal;
+      window.currentActiveGoal = config.goal;
+    }
+  } catch (err) {
+    // bridge not ready yet: pywebviewready calls loadGoal again
+  }
+}
+
+function showFeedback(ok, text) {
+  const fb = $('feedback');
+  fb.className = `alert ${ok ? 'alert-ok' : 'alert-err'} mt-5`;
+  fb.textContent = text;
+}
+
+async function verifyGoal(e) {
+  e.preventDefault();
+  const typed = $('goalInput').value;
+  const btn = $('unlockBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.textContent = 'Checking…';
+
+  try {
+    const res = await window.pywebview.api.verify_friction_goal(typed, requestedGrace);
+    if (res.success) {
+      const g = (typeof res.approved_grace === 'number') ? res.approved_grace : requestedGrace;
+      const label = g >= 1 ? `${g}-minute` : `${Math.round(g * 60)}-second`;
+      showFeedback(true, g > 0 ? `Okay. Your ${label} break has started; a countdown is on your screen.` : 'Verified.');
+      $('goalInput').disabled = true;
+      btn.textContent = 'Unlocked';
+      setTimeout(async () => {
+        try { await window.pywebview.api.close_friction_window(); } catch(e){}
+      }, 1500);
+    } else {
+      showFeedback(false, res.message);
+      btn.disabled = false;
+      btn.textContent = 'Unlock break';
+    }
+  } catch (err) {
+    showFeedback(false, "Couldn't reach the app backend.");
+    btn.disabled = false;
+    btn.textContent = 'Unlock break';
+  }
+}
+
+// The student overrules the AI: this video is allowed for the rest of the run, and it's logged
+async function markAsStudy() {
+  try {
+    const res = await window.pywebview.api.mark_video_as_study();
+    if (res && !res.success) showFeedback(false, res.message);
+  } catch (e) {}
+}
+
+// Hides the distracting app as well as the popup, so the popup doesn't loop
+async function stayOnTask() {
+  try {
+    await window.pywebview.api.back_to_focus();
+  } catch(e){
+    try { await window.pywebview.api.close_friction_window(); } catch(e2){}
+  }
+}
+
+// The page is reloaded every time the modal is shown, so loading once is enough (no polling)
+let booted = false;
+function boot() {
+  if (booted) return;
+  booted = true;
+  loadGoal(); applyDemoMode(); loadVideoInsight();
+}
+window.addEventListener('pywebviewready', boot);
+setTimeout(boot, 300);
+</script>
+</body>
+</html>

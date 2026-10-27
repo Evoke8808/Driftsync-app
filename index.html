@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftSync - Focus</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds flex flex-col px-6 md:px-10 py-6">
+
+    <!-- Header -->
+    <header class="flex items-center justify-between w-full">
+        <a href="setup.html" class="wordmark serif"><span class="dot"></span>driftsync</a>
+        <nav class="flex items-center gap-1">
+            <a href="setup.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>
+                Setup
+            </a>
+            <a href="timetable.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                Timetable
+            </a>
+            <button onclick="window.pywebview.api.open_dashboard()" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Insights
+            </button>
+            <span id="userBadge" class="user-chip ml-2"><span class="avatar">G</span><span>Guest</span></span>
+        </nav>
+    </header>
+
+    <!-- Timer -->
+    <main class="flex-1 flex flex-col items-center justify-center py-8">
+
+        <div class="flex items-center gap-3 mb-6">
+            <span id="sessionLabel" class="tag">Focus Session</span>
+            <span id="modeBadge" class="tag tag-quiet">College · Level 2</span>
+            <span id="demoBadge" class="tag tag-sand hidden" title="DEMO_MODE=1 in .env: short timers for live demos">Demo mode</span>
+        </div>
+
+        <div id="timerWrap" class="timer-wrap">
+            <svg width="320" height="320" viewBox="0 0 320 320">
+                <circle cx="160" cy="160" r="146" stroke-width="6" fill="none" class="timer-track"/>
+                <circle id="timerProgressRing" cx="160" cy="160" r="146" stroke-width="6" fill="none"
+                        stroke-dasharray="917.3" stroke-dashoffset="0" stroke-linecap="round" class="timer-ring"/>
+            </svg>
+            <div class="text-center">
+                <div id="timerClock" class="timer-clock tnum">30:00</div>
+                <div id="timerSub" class="text-xs muted mt-3 tnum">of 30 min</div>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3 mt-8">
+            <button id="toggleBtn" onclick="toggleTimer()" class="btn btn-lg btn-primary min-w-[170px]">Start</button>
+            <button id="resetBtn" onclick="resetTimer()" title="Reset (logged if it ran 1+ min)" class="btn btn-icon btn-secondary">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+            </button>
+        </div>
+
+        <p id="statusLine" class="text-sm muted h-5 mt-5 text-center"></p>
+
+        <div class="card px-6 py-4 mt-6 w-full max-w-lg text-center">
+            <div class="text-[11px] faint uppercase tracking-[0.14em] mb-1.5">Current intention</div>
+            <div id="activeGoalText" class="serif text-xl leading-snug">Loading…</div>
+        </div>
+    </main>
+
+    <!-- Footer actions -->
+    <footer class="flex justify-center gap-3 pb-2">
+        <button onclick="openAiModal()" class="btn btn-soft-teal">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>
+            Talk to your coach
+        </button>
+        <button onclick="alert('Leaderboard coming soon!')" class="btn btn-ghost">Leaderboard</button>
+    </footer>
+
+    <!-- AI Coach drawer -->
+    <div id="aiModal" class="hidden fixed inset-0 z-50 flex justify-end drawer-backdrop" onclick="if (event.target === this) closeAiModal()">
+        <aside class="drawer w-full max-w-[460px] h-full flex flex-col">
+            <div class="flex items-start justify-between px-6 pt-6 pb-4 divider" style="border-top:none;border-bottom:1px solid var(--line)">
+                <div class="flex items-center gap-3">
+                    <div class="coach-avatar"><span></span></div>
+                    <div>
+                        <h2 class="serif text-lg leading-tight">Your focus coach</h2>
+                        <p class="text-xs muted">Tell me what's getting in the way. No judgement.</p>
+                    </div>
+                </div>
+                <button onclick="closeAiModal()" class="btn btn-ghost btn-icon" style="width:36px;height:36px" title="Close">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+
+            <div id="chatMessages" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                <div class="flex gap-3 items-end fade-up">
+                    <div class="coach-avatar"><span></span></div>
+                    <div class="bubble bubble-ai">
+                        Hey, I'm here. What's getting in the way of studying today? Procrastination, stress, your phone, anything goes.
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 pb-6 pt-3" style="border-top:1px solid var(--line)">
+                <div class="flex gap-2">
+                    <input id="chatInput" type="text" placeholder="Describe what's stopping you…" autocomplete="off"
+                           onkeydown="if(event.key === 'Enter') sendChatMessage()" class="input">
+                    <button onclick="sendChatMessage()" class="btn btn-primary">Send</button>
+                </div>
+                <p class="text-[11px] faint mt-2">A study coach, not a therapist. If you're struggling, reach out to someone you trust.</p>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        const api = () => window.pywebview.api;
+
+        const SESSION_LABELS = { FOCUS: "Focus Session", SHORT_BREAK: "Short Break", LONG_BREAK: "Long Break" };
+        const MAX_PAUSE_SEC = 300;   // a focus pause ends by itself after 5 minutes
+        const PAUSE_LIMITS = { "1": Infinity, "2": 2, "3": 0 };   // pauses allowed per focus block, by strictness
+        const LONG_BREAK_EVERY = 4;                                // every 4th break is a long one
+        const RING_CIRCUMFERENCE = 917.3;                          // 2 * PI * 146
+
+        let config = { goal: "", duration: 30, shortBreak: 5, longBreak: 15, mode: "College", strictness: "2" };
+        let sessionType = "FOCUS";
+        let plannedSec = 30 * 60;
+        let remainingSec = plannedSec;
+        let endAt = 0;               // wall-clock ms when the running segment ends (immune to timer throttling)
+        let isRunning = false;
+        let timerInterval = null;
+        let segmentStart = 0;        // ms when the current running segment started
+        let elapsedSec = 0;          // active (unpaused) seconds in this session
+        let sessionStartMs = 0;      // when this session was first started, sent to the log
+        let pausesUsed = 0;
+        let pauseTimeout = null;     // auto-resumes a focus block after MAX_PAUSE_SEC
+        let focusCount = 0;
+        let chatHistory = [];
+        let aiGoals = [];
+        let initialised = false;
+
+        // ---------- setup ----------
+        async function initSession() {
+            if (initialised) return;
+            try {
+                // Whatever page we came from, no timer is running right now. Make sure Python agrees,
+                // so a reload or a missed unload can't leave blocking switched on with no visible timer.
+                await api().set_timer_state(false, "FOCUS");
+            } catch (e) { return; }   // bridge not ready yet, pywebviewready will call again
+            initialised = true;
+
+            try {
+                const cfg = await api().get_session_config();
+                if (cfg) config = Object.assign(config, cfg);
+                const user = await api().get_current_user();
+                if (user && user.username) setUser(user.username);
+            } catch (e) {}
+
+            document.getElementById('activeGoalText').innerText = config.goal || "No intention set yet";
+            document.getElementById('modeBadge').innerText = `${config.mode} · Level ${config.strictness}`;
+            document.getElementById('demoBadge').classList.toggle('hidden', !config.demoMode);
+            loadSession("FOCUS");
+        }
+
+        function setUser(name) {
+            document.getElementById('userBadge').innerHTML =
+                `<span class="avatar">${escapeHtml(name.charAt(0))}</span><span>${escapeHtml(name)}</span>`;
+        }
+
+        // minutes; may be a fraction in demo mode (0.5 = 30 seconds)
+        function minutesFor(type) {
+            if (type === "SHORT_BREAK") return parseFloat(config.shortBreak) || 5;
+            if (type === "LONG_BREAK") return parseFloat(config.longBreak) || 15;
+            return parseFloat(config.duration) || 30;
+        }
+
+        function lengthLabel(mins) {
+            return mins < 1 ? `${Math.round(mins * 60)} sec` : `${+mins.toFixed(1)} min`;
+        }
+
+        function loadSession(type) {
+            clearInterval(timerInterval);
+            clearTimeout(pauseTimeout);
+            sessionType = type;
+            plannedSec = Math.round(minutesFor(type) * 60);
+            remainingSec = plannedSec;
+            endAt = 0;
+            isRunning = false;
+            elapsedSec = 0;
+            sessionStartMs = 0;
+            pausesUsed = 0;
+
+            const isBreak = type !== "FOCUS";
+            const label = document.getElementById('sessionLabel');
+            label.innerText = SESSION_LABELS[type];
+            label.className = isBreak ? "tag tag-sand" : "tag";
+            document.getElementById('timerProgressRing').classList.toggle('is-break', isBreak);
+            document.getElementById('timerSub').innerText = `of ${lengthLabel(minutesFor(type))}`;
+            setRunningVisual(false);
+            setButton(isBreak ? "Start break" : "Start", "start");
+            updateDisplay();
+        }
+
+        // ---------- display ----------
+        function updateDisplay() {
+            if (isRunning && endAt > 0) {
+                remainingSec = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+            }
+            const mins = Math.floor(remainingSec / 60).toString().padStart(2, '0');
+            const secs = (remainingSec % 60).toString().padStart(2, '0');
+            document.getElementById('timerClock').innerText = `${mins}:${secs}`;
+
+            const ratio = plannedSec > 0 ? remainingSec / plannedSec : 0;
+            document.getElementById('timerProgressRing').style.strokeDashoffset = RING_CIRCUMFERENCE - ratio * RING_CIRCUMFERENCE;
+        }
+
+        function setButton(text, style) {
+            const btn = document.getElementById('toggleBtn');
+            btn.innerText = text;
+            let variant = "btn-primary";
+            if (style === "pause") variant = "btn-pause";
+            else if (sessionType !== "FOCUS") variant = "btn-sand";
+            btn.className = `btn btn-lg ${variant} min-w-[170px]`;
+        }
+
+        function setRunningVisual(on) {
+            document.getElementById('timerWrap').classList.toggle('is-running', on);
+        }
+
+        function setStatus(text) {
+            document.getElementById('statusLine').innerText = text || "";
+        }
+
+        function reportProgress() {
+            if (!sessionStartMs) return;
+            try { api().note_progress(sessionType, plannedSec, activeSeconds(), sessionStartMs); } catch (e) {}
+        }
+
+        function activeSeconds() {
+            return elapsedSec + (isRunning ? Math.floor((Date.now() - segmentStart) / 1000) : 0);
+        }
+
+        // ---------- controls ----------
+        async function toggleTimer() {
+            if (isRunning) return pauseTimer();
+            return startTimer();
+        }
+
+        async function startTimer() {
+            let ok = true;
+            // third argument: resuming after a pause, so Python keeps this block's YouTube browsing allowance
+            try { ok = await api().set_timer_state(true, sessionType, sessionStartMs > 0); } catch (e) {}
+            if (ok === false) {
+                setStatus("Allow Accessibility access for DriftSync, then press Start again.");
+                return;
+            }
+            if (!sessionStartMs) sessionStartMs = Date.now();
+            isRunning = true;
+            segmentStart = Date.now();
+            endAt = Date.now() + remainingSec * 1000;
+            setButton("Pause", "pause");
+            setRunningVisual(true);
+            clearTimeout(pauseTimeout);
+            const shieldOn = (config.blocklist || []).length > 0;
+            setStatus(sessionType !== "FOCUS" ? "Break time. Blocking is off, rest your eyes."
+                : shieldOn ? "Distraction shield is on. You've got this."
+                : "Your blocklist is empty, so nothing is being blocked. Add apps in Setup.");
+
+            clearInterval(timerInterval);
+            let ticks = 0;
+            timerInterval = setInterval(() => {
+                updateDisplay();
+                if (++ticks % 60 === 0) reportProgress();   // every ~15s, so a closed window can still be logged
+                if (Date.now() >= endAt) completeSession();
+            }, 250);
+        }
+
+        async function pauseTimer() {
+            if (sessionType === "FOCUS") {
+                const limit = PAUSE_LIMITS[String(config.strictness)] ?? 2;
+                if (pausesUsed >= limit) {
+                    setStatus(limit === 0
+                        ? "No pauses at this level. Use reset to stop (it is logged as Stopped Early)."
+                        : `Pause limit reached (${limit}). Use reset to stop early.`);
+                    return;
+                }
+                pausesUsed++;
+            }
+            clearInterval(timerInterval);
+            elapsedSec = activeSeconds();
+            isRunning = false;
+            updateDisplay();
+            setRunningVisual(false);
+            try { await api().set_timer_state(false, sessionType, true); } catch (e) {}
+            reportProgress();
+            setButton("Resume", "start");
+            if (sessionType === "FOCUS") {
+                // a pause can't outlast the limit, otherwise two long pauses bypass the shield
+                clearTimeout(pauseTimeout);
+                pauseTimeout = setTimeout(() => { if (!isRunning && sessionStartMs) startTimer(); }, MAX_PAUSE_SEC * 1000);
+            }
+            if (sessionType === "FOCUS") {
+                const limit = PAUSE_LIMITS[String(config.strictness)] ?? 2;
+                setStatus(limit === Infinity ? "Paused." : `Paused (${pausesUsed}/${limit} pauses used).`);
+            } else {
+                setStatus("Break paused.");
+            }
+        }
+
+        async function completeSession() {
+            clearInterval(timerInterval);
+            if (!isRunning) return;
+            isRunning = false;
+            remainingSec = 0;
+            updateDisplay();
+            try { await api().set_timer_state(false, sessionType); } catch (e) {}
+            try { await api().log_session(sessionType, plannedSec, plannedSec, sessionStartMs); } catch (e) {}
+
+            if (sessionType === "FOCUS") {
+                focusCount++;
+                const next = focusCount % LONG_BREAK_EVERY === 0 ? "LONG_BREAK" : "SHORT_BREAK";
+                loadSession(next);
+                setStatus(`Focus block done. Take your ${lengthLabel(minutesFor(next))} break.`);
+            } else {
+                loadSession("FOCUS");
+                setStatus("Break over. Ready when you are.");
+            }
+        }
+
+        // Reset: stops the session (logged if it ran at least a minute). During a break it skips to focus.
+        async function resetTimer() {
+            clearInterval(timerInterval);
+            clearTimeout(pauseTimeout);
+            const done = activeSeconds();
+            const wasBreak = sessionType !== "FOCUS";
+            isRunning = false;
+            try { await api().set_timer_state(false, sessionType); } catch (e) {}
+            if (sessionStartMs && done >= 60) {
+                try { await api().log_session(sessionType, plannedSec, done, sessionStartMs); } catch (e) {}
+                setStatus(wasBreak ? "Break skipped." : "Session stopped early and logged.");
+            } else {
+                setStatus("");
+            }
+            loadSession("FOCUS");
+        }
+
+        // Leaving the page (Setup, Timetable, reload) ends the session instead of leaving Python blocking
+        window.addEventListener('beforeunload', () => {
+            if (!sessionStartMs) return;
+            try {
+                const done = activeSeconds();
+                if (done >= 60) api().log_session(sessionType, plannedSec, done, sessionStartMs);
+                api().set_timer_state(false, sessionType);
+            } catch (e) {}
+        });
+
+        // ---------- AI coach ----------
+        function openAiModal() {
+            document.getElementById('aiModal').classList.remove('hidden');
+            document.getElementById('chatInput').focus();
+        }
+
+        function closeAiModal() {
+            document.getElementById('aiModal').classList.add('hidden');
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeAiModal();
+        });
+
+        function coachRow(innerHtml, id) {
+            return `
+                <div ${id ? `id="${id}"` : ''} class="flex gap-3 items-end fade-up">
+                    <div class="coach-avatar"><span></span></div>
+                    <div class="bubble bubble-ai">${innerHtml}</div>
+                </div>`;
+        }
+
+        async function sendChatMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            const chatContainer = document.getElementById('chatMessages');
+            chatContainer.insertAdjacentHTML('beforeend', `
+                <div class="flex justify-end fade-up"><div class="bubble bubble-user">${escapeHtml(message)}</div></div>
+            `);
+            input.value = '';
+
+            const typingId = 'typing_' + Date.now();
+            chatContainer.insertAdjacentHTML('beforeend', coachRow(`<span class="typing"><span></span><span></span><span></span></span>`, typingId));
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+
+            try {
+                // send only the earlier turns as history; the current message goes separately
+                const res = await api().chat_with_ai(message, chatHistory.slice(-8));
+                document.getElementById(typingId)?.remove();
+                chatHistory.push({ sender: 'user', text: message });
+
+                if (res && res.success) {
+                    chatHistory.push({ sender: 'ai', text: res.reply });
+
+                    // The detected blocker, shown as a small tag above the reply
+                    const issueHtml = res.issue
+                        ? `<div class="mb-2"><span class="tag ${res.issue === 'Wellbeing' ? 'tag-coral' : ''}">${escapeHtml(res.issue)}</span></div>`
+                        : '';
+
+                    // Only offer the timer when the coach actually proposed a concrete first step
+                    let actionHtml = '';
+                    if (res.goal) {
+                        const mins = res.minutes || parseInt(config.duration) || 25;
+                        const idx = aiGoals.push({ goal: res.goal, minutes: mins }) - 1;
+                        actionHtml = `
+                            <div class="mt-3 pt-3" style="border-top:1px solid var(--line)">
+                                <div class="text-[12px] muted mb-2.5">Next step · <span class="text-teal">${escapeHtml(res.goal)}</span> · ${mins} min</div>
+                                <div class="flex items-center gap-2 flex-wrap">
+                                    <button onclick="setAiGoalFromChat(${idx}, true)" class="btn btn-primary btn-sm">Start ${mins}-min timer ▶</button>
+                                    <button onclick="setAiGoalFromChat(${idx}, false)" class="btn btn-ghost btn-sm">Just set the goal</button>
+                                </div>
+                            </div>`;
+                    }
+
+                    chatContainer.insertAdjacentHTML('beforeend', coachRow(`${issueHtml}${escapeHtml(res.reply)}${actionHtml}`));
+                }
+            } catch (e) {
+                document.getElementById(typingId)?.remove();
+                console.error("Chat Error:", e);
+            }
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        async function setAiGoalFromChat(idx, startNow) {
+            const pick = aiGoals[idx];
+            if (!pick) return;
+            if (sessionStartMs) {
+                alert("Finish or reset the current session before starting a new one.");
+                return;
+            }
+            config.goal = pick.goal;
+            const update = { goal: pick.goal };
+            if (pick.minutes) { update.duration = pick.minutes; config.duration = pick.minutes; }
+            try { await api().save_session_config(update); } catch (e) {}
+
+            document.getElementById('activeGoalText').innerText = config.goal;
+            closeAiModal();
+            loadSession("FOCUS");
+            if (startNow) {
+                await startTimer();
+            } else {
+                setStatus("New intention set by your coach.");
+            }
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        window.addEventListener('pywebviewready', initSession);
+        setTimeout(initSession, 300);
+    </script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DriftSync - Break</title>
+<link rel="stylesheet" href="theme.css">
+<style>
+  /* tiny always-on-top window (260x170): no Tailwind needed */
+  * { box-sizing: border-box; }
+  body.ds { margin: 0; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; text-align: center; }
+  .label-sm { font-size: 10px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+  #clock { font-size: 46px; font-weight: 300; letter-spacing: -0.02em; color: var(--sand); line-height: 1.05; }
+  #clock.low { color: var(--coral); }
+  .bar { width: 78%; height: 5px; border-radius: 999px; background: rgba(237, 232, 224, 0.08); overflow: hidden; }
+  #fill { height: 100%; width: 100%; background: var(--sand); border-radius: 999px; transition: width .9s linear, background .4s; }
+  #fill.low { background: var(--coral); }
+  .hint { font-size: 10px; color: var(--faint); }
+</style>
+</head>
+<body class="ds">
+  <div class="label-sm">Short break</div>
+  <div id="clock" class="tnum">--:--</div>
+  <div class="bar"><div id="fill"></div></div>
+  <div id="hint" class="hint">Focus resumes at 00:00</div>
+
+<script>
+const clock = document.getElementById('clock');
+const fill = document.getElementById('fill');
+const hint = document.getElementById('hint');
+let total = 0;
+let wasActive = false;
+
+function fmt(sec) {
+  const m = String(Math.floor(sec / 60)).padStart(2, '0');
+  const s = String(sec % 60).padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+async function tick() {
+  let rem = 0;
+  try { rem = await window.pywebview.api.get_grace_remaining(); } catch (e) { return; }
+
+  if (rem > 0) {
+    if (!wasActive) total = rem;           // each new grace period starts a fresh bar
+    wasActive = true;
+    total = Math.max(total, rem);
+    clock.textContent = fmt(rem);
+    fill.style.width = Math.round((rem / total) * 100) + '%';
+    const low = rem <= 15;
+    clock.classList.toggle('low', low);
+    fill.classList.toggle('low', low);
+    hint.textContent = 'Focus resumes at 00:00';
+  } else if (wasActive) {
+    // Only close after a grace period that actually ran (not on first load)
+    wasActive = false;
+    total = 0;
+    clock.textContent = '00:00';
+    fill.style.width = '0%';
+    hint.textContent = 'Break over. Back to it.';
+    setTimeout(async () => {
+      try { await window.pywebview.api.close_grace_window(); } catch (e) {}
+    }, 1200);
+  }
+}
+
+setInterval(tick, 1000);
+tick();
+</script>
+</body>
+</html>

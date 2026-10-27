@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftSync - Insights</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds px-6 md:px-10 py-6">
+
+    <header class="flex flex-wrap items-end justify-between gap-4 w-full mb-8">
+        <div>
+            <div class="wordmark serif mb-4"><span class="dot"></span>driftsync</div>
+            <h1 class="serif text-[34px] leading-tight">Your week in focus</h1>
+            <p class="muted mt-1">The last 7 days of focus blocks, breaks and drifts.</p>
+        </div>
+        <div id="filterBar" class="seg grid-cols-4 w-[380px]">
+            <button data-level="all" class="filter-btn is-selected">All</button>
+            <button data-level="college" class="filter-btn">College</button>
+            <button data-level="school" class="filter-btn">School</button>
+            <button data-level="corporate" class="filter-btn">Corporate</button>
+        </div>
+    </header>
+
+    <!-- Stat row -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-5">
+        <div class="card p-5">
+            <div class="text-xs muted">Focus minutes</div>
+            <div id="focusTotalMins" class="serif text-[40px] leading-none mt-3 tnum">0</div>
+            <div class="text-xs faint mt-2">valid focus blocks only</div>
+        </div>
+        <div class="card p-5">
+            <div class="text-xs muted">Completed blocks</div>
+            <div id="sessionsTotal" class="serif text-[40px] leading-none mt-3 tnum">0</div>
+            <div class="text-xs faint mt-2"><span id="breakTotalMins" class="tnum">0</span> break minutes taken</div>
+        </div>
+        <div class="card p-5 flex items-center justify-between">
+            <div>
+                <div class="text-xs muted">Focus accuracy</div>
+                <div class="text-xs faint mt-2 max-w-[130px]">each off-topic drift costs 5%</div>
+            </div>
+            <div class="relative w-[84px] h-[84px] grid place-items-center">
+                <svg class="absolute inset-0 -rotate-90" width="84" height="84" viewBox="0 0 84 84" style="overflow:visible">
+                    <circle cx="42" cy="42" r="36" stroke="rgba(237,232,224,0.07)" stroke-width="6" fill="none"/>
+                    <circle id="accuracyRing" cx="42" cy="42" r="36" stroke="var(--teal)" stroke-width="6" fill="none"
+                            stroke-dasharray="226.2" stroke-dashoffset="226.2" stroke-linecap="round"
+                            style="transition: stroke-dashoffset 1s cubic-bezier(.2,.7,.2,1)"/>
+                </svg>
+                <div id="accuracyText" class="serif text-xl tnum">—</div>
+            </div>
+        </div>
+        <div class="card p-5">
+            <div class="text-xs muted">Drifts caught</div>
+            <div class="serif text-[40px] leading-none mt-3 tnum text-coral">
+                10
+            </div>
+            <div class="text-xs faint mt-2"><span class="text-teal">0</span> study videos allowed · <span class="text-teal">0</span> on-topic</div>
+        </div>
+    </section>
+
+    <!-- Chart + breakdown -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-5">
+        <div class="card p-6 lg:col-span-2">
+            <div class="flex justify-between items-baseline mb-6">
+                <h2 class="serif text-lg">Focus per day</h2>
+                <span class="text-xs faint">minutes</span>
+            </div>
+            <div id="barChart" class="flex items-end gap-4 h-44"></div>
+        </div>
+        <div class="card p-6">
+            <h2 class="serif text-lg mb-1">Where you drifted</h2>
+            <p class="text-xs faint mb-5">YouTube visits are labelled by AI from the video title.</p>
+            <div id="breakdownContainer" class="space-y-4 overflow-y-auto max-h-48 pr-1"></div>
+        </div>
+    </section>
+
+    <!-- Today -->
+    <section class="card overflow-hidden">
+        <div class="px-6 py-4" style="border-bottom:1px solid var(--line)">
+            <h2 class="serif text-lg">Today</h2>
+        </div>
+        <table class="ds-table">
+            <thead>
+                <tr>
+                    <th class="pl-6">Start</th>
+                    <th>End</th>
+                    <th>Mode</th>
+                    <th>Level</th>
+                    <th>Duration</th>
+                    <th>Outcome</th>
+                    <th class="text-center">Drifts</th>
+                    <th class="text-right pr-6">Accuracy</th>
+                </tr>
+            </thead>
+            <tbody id="sessionTableBody"></tbody>
+        </table>
+    </section>
+
+    <script>
+        // Filled in by desktop_app.py -> open_dashboard()
+        const SESSIONS = [];
+        const DAYS = [{"key": "2026-10-20", "day": "Tue", "date": "Oct 20"}, {"key": "2026-10-21", "day": "Wed", "date": "Oct 21"}, {"key": "2026-10-22", "day": "Thu", "date": "Oct 22"}, {"key": "2026-10-23", "day": "Fri", "date": "Oct 23"}, {"key": "2026-10-24", "day": "Sat", "date": "Oct 24"}, {"key": "2026-10-25", "day": "Sun", "date": "Oct 25"}, {"key": "2026-10-26", "day": "Mon", "date": "Oct 26"}];
+        const DRIFT_BREAKDOWN = [{"app": "YouTube", "category": "", "count": 8, "unlocked": 1, "onTopic": 0, "pct": 80}, {"app": "Instagram", "category": "", "count": 1, "unlocked": 0, "onTopic": 0, "pct": 10}, {"app": "YouTube", "category": "Browsing", "count": 1, "unlocked": 1, "onTopic": 0, "pct": 10}];
+
+        const MODE_LABELS = { focus: "Focus", short_break: "Short break", long_break: "Long break" };
+        let currentFilter = 'all';
+
+        function esc(v) {
+            return String(v ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function filtered() {
+            if (currentFilter === 'all') return SESSIONS;
+            return SESSIONS.filter(s => (s.level || '').toLowerCase() === currentFilter);
+        }
+
+        function isValidFocus(s) { return s.mode === 'focus' && s.outcome !== 'Invalid'; }
+
+        function renderBars(list) {
+            const perDay = {};
+            list.filter(isValidFocus).forEach(s => { perDay[s.day] = (perDay[s.day] || 0) + s.actualSec; });
+            const data = DAYS.map(d => ({ ...d, mins: Math.floor((perDay[d.key] || 0) / 60) }));
+            const maxMins = Math.max(60, ...data.map(d => d.mins));
+            const todayKey = DAYS.length ? DAYS[DAYS.length - 1].key : '';
+
+            document.getElementById('barChart').innerHTML = data.map(d => {
+                const pct = (d.mins / maxMins) * 100;
+                const isToday = d.key === todayKey;
+                const bar = d.mins > 0      // a zero day shows no bar, just the baseline
+                    ? `<div class="w-full max-w-[38px] rounded-t-[10px] relative transition-all"
+                            style="height:${pct}%;min-height:6px;background:${isToday ? 'var(--teal)' : 'rgba(45,212,191,0.32)'}">
+                           <span class="absolute -top-6 left-1/2 -translate-x-1/2 text-[11px] tnum ${isToday ? 'text-teal' : 'muted'}">${d.mins}</span>
+                       </div>`
+                    : '';
+                return `
+                    <div class="flex-1 flex flex-col items-center h-full" title="${esc(d.date)}: ${d.mins} min">
+                        <div class="flex-1 w-full flex items-end justify-center" style="border-bottom:1px solid var(--line)">${bar}</div>
+                        <span class="text-[11px] mt-2 ${isToday ? 'text-teal' : 'faint'}">${esc(d.day)}</span>
+                    </div>`;
+            }).join('');
+        }
+
+        function renderAccuracy(list) {
+            const scored = list.filter(s => s.accuracy !== null && s.accuracy !== undefined);
+            const ring = document.getElementById('accuracyRing');
+            const text = document.getElementById('accuracyText');
+            const circumference = 226.2;
+            if (scored.length === 0) {            // no focus blocks yet: don't pretend it's 100%
+                ring.style.strokeDashoffset = circumference;
+                text.innerText = '—';
+                return;
+            }
+            const avg = Math.round(scored.reduce((a, s) => a + s.accuracy, 0) / scored.length);
+            ring.style.stroke = avg < 50 ? 'var(--sand)' : 'var(--teal)';
+            setTimeout(() => {
+                ring.style.strokeDashoffset = circumference - (avg / 100) * circumference;
+                text.innerText = avg + '%';
+            }, 200);
+        }
+
+        function renderTotals(list) {
+            const focusSec = list.filter(isValidFocus).reduce((a, s) => a + s.actualSec, 0);
+            const breakSec = list.filter(s => s.mode !== 'focus').reduce((a, s) => a + s.actualSec, 0);
+            document.getElementById('focusTotalMins').innerText = Math.round(focusSec / 60);
+            document.getElementById('breakTotalMins').innerText = Math.round(breakSec / 60);
+            document.getElementById('sessionsTotal').innerText = list.filter(s => s.mode === 'focus' && s.outcome === 'Completed').length;
+        }
+
+        function outcomeTag(outcome) {
+            if (outcome === 'Completed') return `<span class="tag">Completed</span>`;
+            if (outcome === 'Invalid') return `<span class="tag tag-quiet">Too short</span>`;
+            return `<span class="tag tag-sand">${esc(outcome)}</span>`;
+        }
+
+        function renderTable(list) {
+            const tbody = document.getElementById('sessionTableBody');
+            const today = list.filter(s => s.isToday);
+            if (today.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center muted" style="padding:36px">No sessions logged today${currentFilter === 'all' ? '' : ' for this level'}. Your first focus block will show up here.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = today.map(s => {
+                let accText = '—', accClass = 'faint';
+                if (s.accuracy !== null && s.accuracy !== undefined) {
+                    accText = s.accuracy + '%';
+                    accClass = s.accuracy >= 90 ? 'text-teal' : (s.accuracy < 70 ? 'text-sand' : '');
+                }
+                const isFocus = s.mode === 'focus';
+                return `
+                    <tr>
+                        <td class="pl-6 tnum">${esc(s.startTime)}</td>
+                        <td class="tnum muted">${esc(s.endTime)}</td>
+                        <td>${esc(MODE_LABELS[s.mode] || s.mode)}</td>
+                        <td class="muted">${esc(s.level)}</td>
+                        <td class="tnum">${esc(s.actual)} <span class="faint">/ ${esc(s.planned)}</span></td>
+                        <td>${outcomeTag(s.outcome)}</td>
+                        <td class="text-center tnum ${isFocus && s.drifts ? 'text-coral' : 'faint'}">${isFocus ? s.drifts : '—'}</td>
+                        <td class="text-right pr-6 tnum font-semibold ${accClass}">${accText}</td>
+                    </tr>`;
+            }).join('');
+        }
+
+        function renderBreakdown() {
+            const container = document.getElementById('breakdownContainer');
+            if (!DRIFT_BREAKDOWN || DRIFT_BREAKDOWN.length === 0) {
+                container.innerHTML = `<p class="text-sm muted">No drifts this week. Nice and steady.</p>`;
+                return;
+            }
+            container.innerHTML = DRIFT_BREAKDOWN.map(item => `
+                <div title="${item.unlocked} of ${item.count} unlocked by typing the intention${item.onTopic ? ` · ${item.onTopic} related to your goal` : ''}">
+                    <div class="flex justify-between items-baseline text-sm mb-1.5">
+                        <span class="truncate max-w-[200px]">${esc(item.app)}${item.category ? ` <span class="faint">· ${esc(item.category)}</span>` : ''}${item.onTopic ? ` <span class="text-teal text-xs">${item.onTopic === item.count ? 'on topic' : item.onTopic + ' on topic'}</span>` : ''}</span>
+                        <span class="tnum muted">${item.count} <span class="faint">· ${item.pct}%</span></span>
+                    </div>
+                    <div class="h-[5px] rounded-full" style="background:rgba(237,232,224,0.06)">
+                        <div class="h-full rounded-full" style="width:${item.pct}%;background:${item.onTopic === item.count ? 'var(--teal)' : 'var(--coral)'};opacity:.75"></div>
+                    </div>
+                </div>`).join('');
+        }
+
+        function renderAll() {
+            const list = filtered();
+            renderBars(list);
+            renderAccuracy(list);
+            renderTotals(list);
+            renderTable(list);
+        }
+
+        document.getElementById('filterBar').addEventListener('click', e => {
+            const btn = e.target.closest('.filter-btn');
+            if (!btn) return;
+            currentFilter = btn.dataset.level;
+            document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('is-selected', b === btn));
+            renderAll();
+        });
+
+        renderBreakdown();
+        renderAll();
+    </script>
+</body>
+</html>

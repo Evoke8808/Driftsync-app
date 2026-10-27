@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftSync - Sign In</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds flex items-center justify-center p-6">
+
+    <div class="w-full max-w-[420px]">
+        <div class="text-center mb-8">
+            <div class="wordmark serif text-[26px] justify-center"><span class="dot"></span>driftsync</div>
+            <p class="serif text-[17px] muted mt-3 italic">Find your focus, gently.</p>
+        </div>
+
+        <div class="card p-7">
+            <div class="tabs mb-6">
+                <button id="tabLogin" type="button" onclick="switchTab('login')" class="tab-active">Sign in</button>
+                <button id="tabRegister" type="button" onclick="switchTab('register')">Create account</button>
+            </div>
+
+            <div id="alertBox" class="hidden mb-5"></div>
+
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="label" for="loginIdentifier">Username or email</label>
+                    <input id="loginIdentifier" type="text" required autocomplete="username" placeholder="you@college.edu" class="input">
+                </div>
+                <div>
+                    <label class="label" for="loginPassword">Password</label>
+                    <input id="loginPassword" type="password" required autocomplete="current-password" placeholder="Your password" class="input">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-2">Sign in</button>
+            </form>
+
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="label" for="regUsername">Username</label>
+                    <input id="regUsername" type="text" required autocomplete="username" placeholder="Pick a username" class="input">
+                </div>
+                <div>
+                    <label class="label" for="regEmail">Email <span class="hint">(optional)</span></label>
+                    <input id="regEmail" type="email" autocomplete="email" placeholder="name@domain.com" class="input">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="label" for="regPassword">Password</label>
+                        <input id="regPassword" type="password" required autocomplete="new-password" placeholder="6+ characters" class="input">
+                    </div>
+                    <div>
+                        <label class="label" for="regConfirmPassword">Confirm</label>
+                        <input id="regConfirmPassword" type="password" required autocomplete="new-password" placeholder="Repeat it" class="input">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block mt-2">Create account</button>
+            </form>
+        </div>
+
+        <p class="text-center text-xs faint mt-6">Your sessions stay on this computer.</p>
+    </div>
+
+    <script>
+        let currentTab = 'login';
+
+        function switchTab(tab) {
+            currentTab = tab;
+            hideAlert();
+            const isLogin = tab === 'login';
+            document.getElementById('tabLogin').classList.toggle('tab-active', isLogin);
+            document.getElementById('tabRegister').classList.toggle('tab-active', !isLogin);
+            document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
+            document.getElementById('registerForm').classList.toggle('hidden', isLogin);
+        }
+
+        function showAlert(msg, isSuccess) {
+            const alertBox = document.getElementById('alertBox');
+            alertBox.innerText = msg;
+            alertBox.className = `alert ${isSuccess ? 'alert-ok' : 'alert-err'} mb-5`;
+        }
+
+        function hideAlert() {
+            document.getElementById('alertBox').className = 'hidden mb-5';
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            hideAlert();
+            const identifier = document.getElementById('loginIdentifier').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await window.pywebview.api.login_user(identifier, password);
+                if (res.success) {
+                    showAlert("Welcome back. Taking you in…", true);
+                    setTimeout(() => { window.location.href = 'setup.html'; }, 500);
+                } else {
+                    showAlert(res.message, false);
+                }
+            } catch (err) {
+                showAlert("Couldn't reach the app backend.", false);
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            hideAlert();
+            const username = document.getElementById('regUsername').value;
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const confirmPassword = document.getElementById('regConfirmPassword').value;
+            if (password !== confirmPassword) {
+                showAlert("Passwords don't match.", false);
+                return;
+            }
+            try {
+                const res = await window.pywebview.api.register_user(username, email, password, confirmPassword);
+                if (res.success) {
+                    document.getElementById('loginIdentifier').value = username;
+                    switchTab('login');                 // switch first, then show the message (switching clears alerts)
+                    showAlert(res.message, true);
+                    document.getElementById('loginPassword').focus();
+                } else {
+                    showAlert(res.message, false);
+                }
+            } catch (err) {
+                showAlert("Couldn't reach the app backend.", false);
+            }
+        }
+    </script>
+</body>
+</html>

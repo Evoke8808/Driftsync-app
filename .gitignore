@@ -1,0 +1,12 @@
+# Local secrets and runtime data
+.env
+focusguard.db
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS
+.DS_Store

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DriftSync - Setup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="theme.css">
+</head>
+<body class="ds px-6 md:px-10 py-6 flex flex-col">
+
+    <header class="flex items-center justify-between w-full mb-8">
+        <a href="setup.html" class="wordmark serif"><span class="dot"></span>driftsync</a>
+        <nav class="flex items-center gap-1">
+            <a href="timetable.html" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                Timetable
+            </a>
+            <button onclick="window.pywebview.api.open_dashboard()" class="nav-link">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+                Insights
+            </button>
+            <span id="demoBadge" class="tag tag-sand hidden mr-1" title="DEMO_MODE=1 in .env">Demo mode</span>
+            <span id="userBadge" class="user-chip ml-2"><span class="avatar">G</span><span>Guest</span></span>
+            <button onclick="logout()" class="nav-link" title="Log out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10"/></svg>
+            </button>
+        </nav>
+    </header>
+
+    <div class="mb-6">
+        <h1 class="serif text-[34px] leading-tight">Set your intention</h1>
+        <p class="muted mt-1.5">Decide what this session is for. DriftSync will gently hold you to it.</p>
+    </div>
+
+    <main class="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1">
+
+        <div class="lg:col-span-2 space-y-6">
+
+            <section>
+                <div class="label">Quick start</div>
+                <div class="grid grid-cols-3 gap-3">
+                    <button type="button" onclick="applyPreset('code')" class="option-card">
+                        <div class="font-semibold text-[15px]">Code sprint</div>
+                        <div class="text-xs muted mt-1">30 min · College · Social block</div>
+                    </button>
+                    <button type="button" onclick="applyPreset('study')" class="option-card">
+                        <div class="font-semibold text-[15px]">Deep study</div>
+                        <div class="text-xs muted mt-1">60 min · College · Full block</div>
+                    </button>
+                    <button type="button" onclick="applyPreset('writing')" class="option-card">
+                        <div class="font-semibold text-[15px]">Writing session</div>
+                        <div class="text-xs muted mt-1">25 min · College · Social block</div>
+                    </button>
+                </div>
+            </section>
+
+            <section class="card p-6">
+                <label class="label" for="aimInput">What will you work on?</label>
+                <input id="aimInput" type="text" placeholder="e.g. Solve 2 LeetCode binary tree problems" value="I am studying data structures"
+                       class="input input-lg serif">
+                <p class="text-xs faint mt-2.5">You'll type this to unlock a blocked app, so keep it short and honest.</p>
+            </section>
+
+            <section>
+                <div class="label">Enforcement level</div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="option-card is-disabled">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-semibold">Corporate</span>
+                            <span class="tag tag-quiet">Level 1</span>
+                        </div>
+                        <p class="text-xs muted">Soft reminders, usage report.</p>
+                        <p class="text-[11px] faint mt-2">Coming soon</p>
+                    </div>
+                    <div id="mode-college" onclick="selectMode('College', '2')" class="option-card is-selected">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-semibold">College</span>
+                            <span class="tag">Level 2</span>
+                        </div>
+                        <p class="text-xs muted">Friction screen; type your intention to continue. 2 pauses per block.</p>
+                    </div>
+                    <div class="option-card is-disabled">
+                        <div class="flex justify-between items-center mb-1.5">
+                            <span class="font-semibold">School</span>
+                            <span class="tag tag-quiet">Level 3</span>
+                        </div>
+                        <p class="text-xs muted">Strict blocks, no early stops.</p>
+                        <p class="text-[11px] faint mt-2">Coming soon</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card p-6">
+                <div class="label">Drift shield <span class="hint">· apps and sites to intercept</span></div>
+                <div class="flex flex-wrap gap-2 mb-4">
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip badge-active">Instagram</button>
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip badge-active">YouTube</button>
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip badge-active">Reddit</button>
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip">X (Twitter)</button>
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip">Discord</button>
+                    <button type="button" onclick="toggleBadge(this)" class="badge-item chip">WhatsApp</button>
+                </div>
+                <input id="customAppInput" type="text" placeholder="Add your own, comma separated: netflix.com, Spotify"
+                       class="input">
+
+                <label class="flex items-start justify-between gap-4 mt-5 pt-5 divider cursor-pointer">
+                    <span>
+                        <span class="block text-sm font-semibold">Smart YouTube</span>
+                        <span class="block text-xs muted mt-1 max-w-[440px]">AI reads the video title. Videos related to your intention play normally; Shorts and off-topic videos are blocked. Searching is allowed for a short while.</span>
+                    </span>
+                    <span class="switch mt-0.5"><input id="smartYouTubeToggle" type="checkbox" checked><span class="slider"></span></span>
+                </label>
+            </section>
+        </div>
+
+        <aside class="lg:sticky lg:top-6 self-start w-full">
+            <section class="card p-6 space-y-6">
+                <div>
+                    <div class="label">Focus length</div>
+                    <div id="durationSeg" class="seg grid-cols-4">
+                        <button type="button" onclick="setDuration(25, this)" class="dur-btn">25m</button>
+                        <button type="button" onclick="setDuration(30, this)" class="dur-btn is-selected">30m</button>
+                        <button type="button" onclick="setDuration(45, this)" class="dur-btn">45m</button>
+                        <button type="button" onclick="setDuration(60, this)" class="dur-btn">60m</button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="label" for="shortBreakSelect">Short break</label>
+                        <select id="shortBreakSelect" class="select">
+                            <option value="5">5 minutes</option>
+                            <option value="10">10 minutes</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="label" for="longBreakSelect">Long break</label>
+                        <select id="longBreakSelect" class="select">
+                            <option value="15">15 minutes</option>
+                            <option value="20">20 minutes</option>
+                            <option value="30">30 minutes</option>
+                        </select>
+                    </div>
+                </div>
+                <p class="text-xs faint -mt-3">Every 4th break is a long one. Blocking is off during breaks.</p>
+
+                <div class="divider pt-5">
+                    <label class="label" for="frictionStyleSelect">When you drift</label>
+                    <select id="frictionStyleSelect" class="select">
+                        <option value="fullscreen">Intention check (recommended)</option>
+                        <option value="banner" disabled>System banner (coming soon)</option>
+                        <option value="chime" disabled>Audio chime only (coming soon)</option>
+                    </select>
+                </div>
+
+                <button onclick="launchSession()" class="btn btn-primary btn-lg btn-block">Begin focus session</button>
+            </section>
+        </aside>
+    </main>
+
+    <script>
+        let selectedMode = "College";
+        let selectedStrictness = "2";
+        let selectedDuration = 30;
+
+        async function initUserBadge() {
+            try {
+                const user = await window.pywebview.api.get_current_user();
+                if (user && user.username) {
+                    document.getElementById('userBadge').innerHTML =
+                        `<span class="avatar">${escapeHtml(user.username.charAt(0))}</span><span>${escapeHtml(user.username)}</span>`;
+                }
+            } catch(e){}
+        }
+
+        function escapeHtml(text) {
+            return String(text ?? '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        async function logout() {
+            try { await window.pywebview.api.logout_user(); } catch(e){}
+            window.location.href = 'login.html';
+        }
+
+        function selectMode(mode, level) {
+            selectedMode = mode;
+            selectedStrictness = level;
+        }
+
+        function setDuration(mins, btnElement) {
+            selectedDuration = mins;
+            document.querySelectorAll('.dur-btn').forEach(el => el.classList.toggle('is-selected', el === btnElement));
+        }
+
+        function toggleBadge(btnElement) {
+            btnElement.classList.toggle('badge-active');
+        }
+
+        // Presets set the blocklist their card promises
+        const SOCIAL = ["Instagram", "YouTube", "Reddit", "X (Twitter)"];
+        const EVERYTHING = ["Instagram", "YouTube", "Reddit", "X (Twitter)", "Discord", "WhatsApp"];
+        function setBadges(names) {
+            document.querySelectorAll('.badge-item').forEach(b => {
+                b.classList.toggle('badge-active', names.includes(b.innerText.trim()));
+            });
+        }
+
+        function applyPreset(preset) {
+            const aimInput = document.getElementById('aimInput');
+            const durBtn = mins => Array.from(document.querySelectorAll('.dur-btn')).find(b => b.innerText.trim() === `${mins}m`);
+            if (preset === 'code') {
+                aimInput.value = "Coding & Algorithmic Problem Solving";
+                selectMode('College', '2');
+                setDuration(30, durBtn(30));
+                setBadges(SOCIAL);
+            } else if (preset === 'study') {
+                aimInput.value = "Deep Academic Study & Note Taking";
+                selectMode('College', '2');
+                setDuration(60, durBtn(60));
+                setBadges(EVERYTHING);
+            } else if (preset === 'writing') {
+                aimInput.value = "Drafting Chapter & Documentation";
+                selectMode('College', '2');
+                setDuration(25, durBtn(25));
+                setBadges(SOCIAL);
+            }
+        }
+
+        async function launchSession() {
+            const activeBadges = Array.from(document.querySelectorAll('.badge-active')).map(b => b.innerText.trim());
+            // "netflix.com, hulu.com" becomes two entries instead of one that never matches
+            document.getElementById('customAppInput').value.split(',')
+                .map(x => x.trim()).filter(Boolean)
+                .forEach(x => { if (!activeBadges.includes(x)) activeBadges.push(x); });
+
+            const sessionConfig = {
+                goal: document.getElementById('aimInput').value.trim() || "Deep Work Session",
+                mode: selectedMode,
+                strictness: selectedStrictness,
+                duration: parseFloat(selectedDuration),
+                shortBreak: parseFloat(document.getElementById('shortBreakSelect').value),
+                longBreak: parseFloat(document.getElementById('longBreakSelect').value),
+                smartYouTube: document.getElementById('smartYouTubeToggle').checked,
+                blocklist: activeBadges
+            };
+
+            try {
+                await window.pywebview.api.save_session_config(sessionConfig);
+            } catch(e){}
+
+            window.location.href = 'index.html';
+        }
+
+        // Demo mode (DEMO_MODE=1 in .env): adds a 1-minute focus block and 30-second / 1-minute breaks
+        let demoApplied = false;
+        async function applyDemoMode() {
+            if (demoApplied) return;
+            let cfg = null;
+            try { cfg = await window.pywebview.api.get_session_config(); } catch (e) { return; }
+            demoApplied = true;
+            if (cfg && typeof cfg.smartYouTube === 'boolean') document.getElementById('smartYouTubeToggle').checked = cfg.smartYouTube;
+            if (!cfg || !cfg.demoMode) return;
+            document.getElementById('demoBadge').classList.remove('hidden');
+            const seg = document.getElementById('durationSeg');
+            seg.classList.replace('grid-cols-4', 'grid-cols-5');
+            seg.insertAdjacentHTML('afterbegin', `<button type="button" onclick="setDuration(1, this)" class="dur-btn" title="Demo">1m</button>`);
+            document.getElementById('shortBreakSelect').insertAdjacentHTML('afterbegin', `<option value="0.5">30 seconds</option>`);
+            document.getElementById('longBreakSelect').insertAdjacentHTML('afterbegin', `<option value="1">1 minute</option>`);
+            document.getElementById('shortBreakSelect').value = "0.5";
+            document.getElementById('longBreakSelect').value = "1";
+            setDuration(1, seg.querySelector('.dur-btn'));
+        }
+
+        window.addEventListener('pywebviewready', () => { initUserBadge(); applyDemoMode(); });
+        setTimeout(() => { initUserBadge(); applyDemoMode(); }, 300);
+    </script>
+</body>
+</html>
