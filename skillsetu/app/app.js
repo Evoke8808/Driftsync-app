@@ -416,26 +416,26 @@ async function typeOut(log) {
 }
 
 function drawCard(c) {
+  // Skills: one line each (skill + the words that prove it); meaning and matching jobs open on click.
   if (c.type === 'skills') return `<div class="card-in skills-card">
       <div class="row between"><b class="sc-title">Your skills (${c.skills.length})</b>${c.source === 'file' ? '' : c.source === 'ai' ? aiTag(c.provider, c.model) : aiTag()}</div>
-      <p class="sc-intro">I turned your story into skills employers look for. Each one shows <b>what it means</b>, <b>the words from your story that prove it</b>, and <b>which jobs ask for it</b>, so a counsellor or employer can check it.</p>
-      ${c.jobsOpened ? `<div class="sc-sum"><span class="n">${c.jobsOpened}</span> of ${c.totalJobs} jobs on SkillSetu ask for at least one of these skills.</div>` : ''}
-      <div class="skill-grid">${c.skills.map((s, i) => `<div class="skill-tile pop" style="--i:${i}">
-        <div class="st-head"><span class="st-ic">${SKILL_ICON[s.category] || ic('star')}</span><span class="st-name">${esc(label(s.skill))}</span>${s.isNew ? '<b class="new">new</b>' : ''}</div>
-        ${s.desc ? `<div class="st-row"><span class="st-k">What it means</span><span>${esc(s.desc)}</span></div>` : ''}
-        <div class="st-row"><span class="st-k">Your proof</span><span class="st-q">${s.reason ? `“${esc(s.reason)}”` : 'Added by you'}</span></div>
-        ${s.jobs ? `<div class="st-row"><span class="st-k">Opens doors to</span><span>${plural(s.jobs, 'job')}, like ${esc(s.jobTitles.join(', '))}</span></div>` : ''}
-        <div class="st-by">${s.by === 'ai' ? 'Found by the AI' : s.by === 'keywords' ? 'Found by keyword check' : s.by === 'service' ? 'From your service record' : 'From your profile'}</div></div>`).join('')}</div></div>`;
+      ${c.jobsOpened ? `<p class="sc-intro">${c.jobsOpened} of ${c.totalJobs} jobs on SkillSetu ask for at least one of these. Each skill shows the words that prove it.</p>` : ''}
+      <div class="sk-list">${c.skills.map((s) => `<details class="sk-row">
+        <summary><span class="chip good">✓ ${esc(label(s.skill))}</span>${s.isNew ? '<b class="new">new</b>' : ''}<span class="sk-proof">${s.reason ? `“${esc(s.reason)}”` : 'Added by you'}</span></summary>
+        <div class="sk-more">${s.desc ? `<div><span class="st-k">What it means</span> ${esc(s.desc)}</div>` : ''}
+          ${s.jobs ? `<div><span class="st-k">Opens doors to</span> ${plural(s.jobs, 'job')}, like ${esc(s.jobTitles.join(', '))}</div>` : ''}
+          <div class="st-by">${s.by === 'ai' ? 'Found by the AI' : s.by === 'keywords' ? 'Found by keyword check' : s.by === 'service' ? 'From your service record' : 'From your profile'}</div></div>
+      </details>`).join('')}</div></div>`;
 
+  // Service translator: one line per rank or duty (army term → civilian job); quotes and skills open on click.
   if (c.type === 'military') return `<div class="card-in mil-card">
-      <div class="row between"><b class="sc-title">${ic('medal')} Service translator</b><span class="badge">${esc(c.service || 'Armed forces')}${c.years ? ` · ${c.years} years` : ''}</span></div>
-      <p class="sc-intro">Keyword filters don’t understand ranks and trades, so I rewrote your service in civilian job language. Employers see the right-hand side.</p>
-      <div class="mil-rows">${c.rows.map((r, i) => `<div class="mil-row pop" style="--i:${i}">
-        <div class="mil-from"><span class="st-k">${r.kind === 'rank' ? 'Rank' : r.kind === 'trade' ? 'Trade / duty' : 'Service'}</span><b>${esc(r.term)}</b>${r.quote ? `<span class="st-q">“${esc(r.quote)}”</span>` : ''}</div>
-        <div class="mil-arrow" aria-hidden="true">${ic('arrow', 22)}</div>
-        <div class="mil-to"><span class="st-k">Civilian</span><b>${esc(r.civilian)}</b><span class="mil-detail">${esc(r.detail)}</span>
-          <div class="row">${r.skills.map((s) => `<span class="chip on sm">${esc(s)}</span>`).join('')}</div></div></div>`).join('')}</div>
-      ${c.jobs?.length ? `<div class="mil-jobs"><span class="st-k">Job titles to search for</span><div class="row">${c.jobs.map((j) => `<span class="chip">${esc(j)}</span>`).join('')}</div></div>` : ''}</div>`;
+      <div class="row between"><b class="sc-title">${ic('medal')} Service in civilian words</b><span class="badge">${esc(c.service || 'Armed forces')}${c.years ? ` · ${c.years} years` : ''}</span></div>
+      <div class="sk-list">${c.rows.map((r) => `<details class="sk-row">
+        <summary><b class="mil-term">${esc(r.term)}</b><span class="mil-to-ic" aria-hidden="true">→</span><b>${esc(r.civilian)}</b></summary>
+        <div class="sk-more"><div>${esc(r.detail)}</div>${r.quote ? `<div class="sk-proof">“${esc(r.quote)}”</div>` : ''}
+          <div class="row">${r.skills.map((x) => `<span class="chip on sm">${esc(x)}</span>`).join('')}</div></div>
+      </details>`).join('')}</div>
+      ${c.jobs?.length ? `<p class="sc-intro" style="margin-top:10px">Job titles to search for: ${c.jobs.map(esc).join(' · ')}</p>` : ''}</div>`;
 
   if (c.type === 'roles') return `<div class="card-in">${c.roles.map((r, i) => `
       <div class="mrole reveal" style="--i:${i}">${ring(r.matchPercent, 58)}

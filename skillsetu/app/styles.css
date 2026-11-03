@@ -1146,3 +1146,16 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .composer textarea, input[type="search"], textarea, select { border-radius: var(--sapField_BorderCornerRadius, .25rem) !important; background: var(--sapField_Background) !important;
   border: 1px solid var(--sapField_BorderColor) !important; color: var(--sapField_TextColor) !important; font-family: var(--sapFontFamily); }
 .composer textarea:focus, textarea:focus, input:focus { outline: var(--sapContent_FocusWidth, .125rem) solid var(--sapContent_FocusColor); outline-offset: -2px; }
+
+/* Compact skills and service cards: one line each, details on click */
+.sk-list { display: grid; gap: 6px; margin-top: 8px; }
+.sk-row { border: 1px solid var(--sapList_BorderColor); border-radius: var(--sapElement_BorderCornerRadius); background: var(--sapTile_Background); }
+.sk-row > summary { display: flex; align-items: center; gap: 10px; padding: 8px 12px; cursor: pointer; list-style: none; flex-wrap: wrap; }
+.sk-row > summary::-webkit-details-marker { display: none; }
+.sk-row > summary::after { content: "›"; margin-left: auto; color: var(--sapContent_IconColor); font-size: 18px; transition: transform .15s; }
+.sk-row[open] > summary::after { transform: rotate(90deg); }
+.sk-row:hover { background: var(--sapList_Hover_Background); }
+.sk-proof { color: var(--sapContent_LabelColor); font-style: italic; font-size: var(--sapFontSmallSize, 13px); }
+.sk-more { padding: 0 12px 10px; display: grid; gap: 6px; font-size: var(--sapFontSize); }
+.mil-term { color: var(--sapContent_LabelColor); font-weight: 600; }
+.mil-to-ic { color: var(--sapContent_IconColor); }
