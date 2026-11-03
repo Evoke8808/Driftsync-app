@@ -22,7 +22,7 @@ module.exports = {
     const lang = /[ऀ-ॿ]/.test(question) ? 'Hindi in Devanagari script' : 'English';
     const SYSTEM = 'You are the Web Research agent of SkillSetu, a career service in India. Answer the person\'s question from the search results only, ' +
       `in ${lang}, in 3 to 5 short sentences. Prefer facts about India and the person's city if given. Give numbers only if a source states them. ` +
-      'If the results do not answer the question, say so plainly. No praise or filler.';
+      'Be helpful: if the results only partly answer, say what they do show (e.g. which job sites list openings, how many, typical pay) and where to look next. Only if nothing is relevant, say so plainly. Never talk about "the search results"; just answer. No praise or filler.';
 
     // 1) Gemini with Google Search grounding.
     let out = await ai.webSearch(SYSTEM, `${about ? `About the person (${about}).\n` : ''}Question: ${question}`, { log, info: aiInfo });

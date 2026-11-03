@@ -14,7 +14,7 @@ async function search(query, { max = 5 } = {}) {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ query: String(query).slice(0, 380), max_results: max, search_depth: 'basic', topic: 'general', include_answer: 'basic' }),
+      body: JSON.stringify({ query: String(query).slice(0, 380), max_results: max, search_depth: 'advanced', chunks_per_source: 3, topic: 'general', include_answer: 'basic' }),
       signal: AbortSignal.timeout(12000)
     });
     const body = await res.json().catch(() => ({}));
