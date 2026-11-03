@@ -1047,3 +1047,102 @@ body.signed-out .login-page { padding-top: 48px; }
 .side-pane .tr { padding: 10px 12px; }
 .journey-page .side { gap: 14px; }
 @media (max-width: 720px) { .journey-page .chat-log { padding: 16px; gap: 18px; } .journey-page .suggest { padding: 6px 16px 10px; } .journey-page .composer { padding: 12px; } }
+
+/* =====================================================================================================
+   STRICT SAP FIORI (HORIZON) THEME
+   Everything below uses only SAP theming parameters (--sap*), which SAP UI5 Web Components set for
+   sap_horizon and sap_horizon_dark. No custom colours, gradients or fonts: SAP 72 everywhere.
+   ===================================================================================================== */
+:root, [data-theme="dark"] {
+  --bg: var(--sapBackgroundColor); --bg-soft: var(--sapBackgroundColor);
+  --surface: var(--sapTile_Background); --surface-2: var(--sapList_HeaderBackground);
+  --border: var(--sapList_BorderColor); --line: var(--sapList_BorderColor);
+  --text: var(--sapTextColor); --text-2: var(--sapContent_LabelColor); --muted: var(--sapContent_LabelColor);
+  --primary: var(--sapBrandColor); --primary-2: var(--sapBrandColor); --primary-soft: var(--sapInformationBackground);
+  --accent: var(--sapBrandColor); --accent-2: var(--sapBrandColor); --accent-soft: var(--sapInformationBackground);
+  --teal: var(--sapBrandColor); --marigold: var(--sapCriticalColor);
+  --good: var(--sapPositiveTextColor); --good-soft: var(--sapSuccessBackground);
+  --warn: var(--sapCriticalTextColor); --warn-soft: var(--sapWarningBackground);
+  --bad: var(--sapNegativeTextColor); --bad-soft: var(--sapErrorBackground);
+  --s-old: var(--sapCriticalColor); --s-new: var(--sapBrandColor);
+  --shadow: var(--sapContent_Shadow0); --shadow-lg: var(--sapContent_Shadow1);
+  --radius: var(--sapTile_BorderCornerRadius);
+  --display: var(--sapFontFamily); --mono: '72Mono', var(--sapFontFamily);
+}
+
+/* Typography: SAP 72, Fiori sizes */
+html, body, button, input, textarea, select, .bubble, .chip, .pill, .badge, .btn { font-family: var(--sapFontFamily); }
+body { font-size: var(--sapFontSize); color: var(--sapTextColor); background: var(--sapBackgroundColor); }
+h1, h2, h3, h4, .brand, .stat .n, .st-name, .sc-title, .side-card h4, .hero-hindi, .sc-sum .n, .live-strip .ls b { font-family: var(--sapFontFamily); letter-spacing: 0; }
+.page-head h1, .dp-head h1 { font-size: var(--sapFontHeader3Size); font-weight: 700; line-height: 1.25; }
+.journey-page .page-head h1 { font-size: var(--sapFontHeader4Size); }
+h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
+.page-head p, .dp-sub, .sc-intro { font-size: var(--sapFontSize); color: var(--sapContent_LabelColor); }
+.dp-sub .hindi { font-family: var(--sapFontFamily); }
+.side-card h4, .sc-title, .skills-card .sc-title { font-size: var(--sapFontHeader5Size); font-weight: 700; }
+.st-name { font-size: var(--sapFontLargeSize); }
+.bubble, .journey-page .bubble, .journey-page .composer textarea { font-size: var(--sapFontLargeSize); }
+
+/* Backgrounds: Horizon in light and dark (no pure black) */
+[data-theme="dark"] body, [data-theme="dark"] .chat-log, .chat-log { background: var(--sapBackgroundColor); }
+.chat-head { background: var(--sapTile_Background); border-bottom: 1px solid var(--sapList_BorderColor); }
+.view, .page { background: transparent; }
+
+/* Surfaces: SAP cards and tiles */
+.card, .panel, .side-card, .chat-box, .stat, .tile, .metro, .side-tabs, .ov-kpi, .ov-link, .login-wrap, .lp-pic {
+  background: var(--sapTile_Background); border: 0; border-radius: var(--sapTile_BorderCornerRadius); box-shadow: var(--sapContent_Shadow0); }
+.tile[role="button"]:hover, .ov-kpi:hover, .ov-link:hover { background: var(--sapTile_Hover_Background); border-color: transparent; }
+.card-in, .skill-tile, .lp-job, .mil-row, .why-sec, .barrier, .mrole, .t-item .course {
+  background: var(--sapTile_Background); border: 1px solid var(--sapList_BorderColor); border-radius: var(--sapElement_BorderCornerRadius); box-shadow: none; }
+.skill-tile::before, .mil-row::before, .stat::after, .hero::before, .hero::after { display: none !important; }
+.skeleton { background: var(--sapList_HeaderBackground); }
+
+/* Chat bubbles: plain SAP surfaces */
+.msg.agent .bubble { background: var(--sapTile_Background); color: var(--sapTextColor); border: 0; border-radius: var(--sapElement_BorderCornerRadius); box-shadow: var(--sapContent_Shadow0); }
+.msg.user .bubble { background: var(--sapButton_Emphasized_Background); color: var(--sapButton_Emphasized_TextColor); border: 0; border-radius: var(--sapElement_BorderCornerRadius); box-shadow: none; }
+.thinking .bubble { color: var(--sapContent_LabelColor); }
+
+/* Chips -> SAP tokens and tags */
+.chip { border-radius: var(--sapButton_TokenBorderCornerRadius); background: var(--sapButton_TokenBackground); border: 1px solid var(--sapButton_TokenBorderColor); color: var(--sapTextColor); box-shadow: none; }
+.chip.on { background: var(--sapButton_Selected_Background); border-color: var(--sapButton_Selected_BorderColor); color: var(--sapButton_Selected_TextColor); }
+.chip.good { background: var(--sapSuccessBackground); border-color: var(--sapSuccessBorderColor); color: var(--sapPositiveTextColor); }
+.chip.warn { background: var(--sapWarningBackground); border-color: var(--sapWarningBorderColor); color: var(--sapCriticalTextColor); }
+.chip.bad { background: var(--sapErrorBackground); border-color: var(--sapErrorBorderColor); color: var(--sapNegativeTextColor); }
+.pill, .badge, .lp-tag { border-radius: .25rem; font-family: var(--sapFontFamily); }
+.pill.good, .lp-tag.good { background: var(--sapSuccessBackground); color: var(--sapPositiveTextColor); }
+.pill.warn, .lp-tag.warn { background: var(--sapWarningBackground); color: var(--sapCriticalTextColor); }
+.pill.bad { background: var(--sapErrorBackground); color: var(--sapNegativeTextColor); }
+.new, .st-head .new { background: var(--sapInformationBackground); color: var(--sapInformativeTextColor, var(--sapBrandColor)); border-radius: .25rem; }
+
+/* Buttons: SAP button look and radius */
+.btn, .lp-btn, .icon-btn { border-radius: var(--sapButton_BorderCornerRadius); font-family: var(--sapFontFamily); }
+.btn-primary, .lp-btn.primary { background: var(--sapButton_Emphasized_Background); border-color: var(--sapButton_Emphasized_BorderColor); color: var(--sapButton_Emphasized_TextColor); box-shadow: none; }
+.link-btn, a.link-btn { color: var(--sapLinkColor); }
+
+/* Avatars and course badges: SAP avatar colours */
+.chat-head .me, .hist .av { background: var(--sapAvatar_6_Background) !important; color: var(--sapAvatar_6_TextColor) !important; font-weight: 700; }
+.course .thumb, .timeline.compact .course .thumb { border-radius: var(--sapElement_BorderCornerRadius); background: var(--sapAvatar_6_Background) !important; color: var(--sapAvatar_6_TextColor); }
+.av { background: var(--sapAvatar_6_Background) !important; color: var(--sapAvatar_6_TextColor); }
+
+/* Progress rings and bars: SAP chart colours */
+.ring .val { stroke: var(--sapChart_OrderedColor_1, var(--sapBrandColor)); }
+.ring .track { stroke: var(--sapList_BorderColor); }
+.fun-bar { background: var(--sapChart_OrderedColor_1, var(--sapBrandColor)); }
+.timeline::before { background: var(--sapList_BorderColor); }
+
+/* Journey stepper styled as an SAP wizard header */
+.metro .stn .dot, .metro .stn i { box-shadow: none; }
+
+/* Sign-in page: SAP backgrounds only */
+.login-side { background: var(--sapBackgroundColor); color: var(--sapTextColor); }
+.lp-brand b, .lp-stat > b { color: var(--sapBrandColor); }
+.lp-bubble, .lp-fair { background: var(--sapList_HeaderBackground); border-radius: var(--sapElement_BorderCornerRadius); }
+
+/* Side tabs like an SAP segmented button */
+.side-tabs button { font-family: var(--sapFontFamily); border-radius: var(--sapButton_BorderCornerRadius); }
+.side-tabs button.on { background: var(--sapButton_Selected_Background); color: var(--sapButton_Selected_TextColor); }
+
+/* Inputs: SAP fields */
+.composer textarea, input[type="search"], textarea, select { border-radius: var(--sapField_BorderCornerRadius, .25rem) !important; background: var(--sapField_Background) !important;
+  border: 1px solid var(--sapField_BorderColor) !important; color: var(--sapField_TextColor) !important; font-family: var(--sapFontFamily); }
+.composer textarea:focus, textarea:focus, input:focus { outline: var(--sapContent_FocusWidth, .125rem) solid var(--sapContent_FocusColor); outline-offset: -2px; }

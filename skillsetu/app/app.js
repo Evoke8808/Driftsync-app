@@ -1,13 +1,13 @@
 const view = document.getElementById('view');
 
 const PERSONAS = [
-  { name: 'Priya', age: 34, city: 'Indore', color: '#f97316', tag: 'Returning after a career break',
+  { name: 'Priya', age: 34, city: 'Indore', color: 'var(--sapAccentColor1)', tag: 'Returning after a career break',
     quote: 'Back after a 6-year childcare break; the gap gets me auto-rejected.',
     story: 'I am 34 and took a 6-year break to raise my 3 children. In that time I managed our household budget, coordinated school schedules, organized community events and negotiated with vendors for school functions.' },
-  { name: 'Ravi', age: 38, city: 'Pune', color: '#0d9488', tag: 'Displaced by automation',
+  { name: 'Ravi', age: 38, city: 'Pune', color: 'var(--sapAccentColor7)', tag: 'Displaced by automation',
     quote: 'My BPO voice role was replaced by a chatbot. The job title no longer exists.',
     story: 'I worked as a BPO voice agent for 5 years, handled customer complaints, solved billing problems, led a team of 5 agents and trained new joiners. I communicate well in Hindi and English.' },
-  { name: 'Arjun', age: 26, city: 'Lucknow', color: '#6366f1', tag: 'Wheelchair user, B.Com',
+  { name: 'Arjun', age: 26, city: 'Lucknow', color: 'var(--sapAccentColor5)', tag: 'Wheelchair user, B.Com',
     quote: 'Employers aren’t accessibility-ready, so I never get to the interview.',
     story: 'I am a B.Com graduate and a wheelchair user. I am skilled in Excel spreadsheets and data entry, kept records for a local shop, organized college events and managed the student council budget.' }
 ];
@@ -39,7 +39,7 @@ const AGENTS = [
   [ic('sprout', 22), 'After-Hire Companion', '“What happens after I’m hired?”', 'Check-ins at day 7, 30 and 90, the next step up, and alerts when a better job matches.']
 ];
 
-const PROVIDER_COLORS = { 'SAP Learning Hub': '#0a6ed1', 'SWAYAM': '#ea580c', 'NPTEL': '#16a34a' };
+const PROVIDER_COLORS = { 'SAP Learning Hub': 'var(--sapAvatar_6_Background)', 'SWAYAM': 'var(--sapAvatar_1_Background)', 'NPTEL': 'var(--sapAvatar_8_Background)' };
 
 
 /* ---------- helpers ---------- */
@@ -167,26 +167,26 @@ function home() {
 
 /* ---------- My Journey: one chat, nine agents ---------- */
 const AGENT_META = {
-  orchestrator: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: '#1f4e3d' },
-  skills: { name: 'Skills Discovery', stop: 'Skills', icon: ic('search'), color: '#2b3a8f' },
-  market: { name: 'Market Intelligence', stop: 'Market', icon: ic('chart'), color: '#127c74' },
-  pathway: { name: 'Learning Pathway', stop: 'Learning', icon: ic('cap'), color: '#3f7d20' },
-  matching: { name: 'Inclusive Matching', stop: 'Matching', icon: ic('match'), color: '#c2306b' },
-  readiness: { name: 'Bias Audit & Readiness', stop: 'Bias audit', icon: ic('shield'), color: '#d9381e' },
-  human: { name: 'Human-in-the-Loop', stop: 'Counsellor', icon: ic('human'), color: '#5b4a3a' },
-  explain: { name: 'Why-Not Explainer', stop: 'Why not?', icon: ic('bulb'), color: '#b7791f' },
-  shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: '#9b2c2c' },
-  growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: '#2f7d5b' },
-  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: '#0a6ed1' }
+  orchestrator: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' },
+  skills: { name: 'Skills Discovery', stop: 'Skills', icon: ic('search'), color: 'var(--sapAccentColor5)' },
+  market: { name: 'Market Intelligence', stop: 'Market', icon: ic('chart'), color: 'var(--sapAccentColor7)' },
+  pathway: { name: 'Learning Pathway', stop: 'Learning', icon: ic('cap'), color: 'var(--sapAccentColor8)' },
+  matching: { name: 'Inclusive Matching', stop: 'Matching', icon: ic('match'), color: 'var(--sapAccentColor3)' },
+  readiness: { name: 'Bias Audit & Readiness', stop: 'Bias audit', icon: ic('shield'), color: 'var(--sapAccentColor2)' },
+  human: { name: 'Human-in-the-Loop', stop: 'Counsellor', icon: ic('human'), color: 'var(--sapAccentColor10)' },
+  explain: { name: 'Why-Not Explainer', stop: 'Why not?', icon: ic('bulb'), color: 'var(--sapAccentColor1)' },
+  shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: 'var(--sapAccentColor2)' },
+  growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: 'var(--sapAccentColor8)' },
+  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' }
 };
 // Metro map: the main line is the usual journey, the branch line holds the help you can ask for any time.
 const METRO_MAIN = ['orchestrator', 'skills', 'market', 'pathway', 'matching', 'readiness', 'human'];
 const METRO_BRANCH = ['explain', 'shield', 'growth'];
 // Status tags on the case file: one per agent that has worked on the case.
 const STAMPS = {
-  skills: ['Skills verified', '#2b3a8f'], market: ['Market checked', '#127c74'], pathway: ['Plan issued', '#3f7d20'],
-  matching: ['Matched on skills', '#c2306b'], readiness: ['Bias check passed', '#d9381e'], explain: ['Why-not explained', '#b7791f'],
-  shield: ['Risk scanned', '#9b2c2c'], growth: ['Hired', '#2f7d5b']
+  skills: ['Skills verified', 'var(--sapAccentColor5)'], market: ['Market checked', 'var(--sapAccentColor7)'], pathway: ['Plan issued', 'var(--sapAccentColor8)'],
+  matching: ['Matched on skills', 'var(--sapAccentColor3)'], readiness: ['Bias check passed', 'var(--sapAccentColor2)'], explain: ['Why-not explained', 'var(--sapAccentColor1)'],
+  shield: ['Risk scanned', 'var(--sapAccentColor2)'], growth: ['Hired', 'var(--sapAccentColor8)']
 };
 // Status tags already shown for a case, so only new ones animate in.
 const shownTags = {};
@@ -331,7 +331,7 @@ async function sendChat({ message = '', intent = null, roleID = null, labelText 
     chat.suggestions = out.suggestions;
     chat.caseFile = out.caseFile;
   } catch (e) {
-    chat.messages.push({ role: 'agent', agent: 'orchestrator', name: 'Setu', text: 'I couldn’t reach the server. Is cds watch running? If you just updated, run cds deploy first.' });
+    chat.messages.push({ role: 'agent', agent: 'orchestrator', name: 'Setu', text: 'I couldn’t reach SkillSetu just now. Please try again in a moment.' });
   }
   chat.busy = false;
   drawChat();
@@ -426,7 +426,7 @@ function drawCard(c) {
       <div class="row between"><b>${esc(c.role.title)} · ${esc(c.role.company)}</b><span class="badge type">${c.matchPercent}% today</span></div>
       <div class="mini-stats"><div><b>${c.steps.length}</b><span>${c.steps.length === 1 ? 'course' : 'courses'}</span></div><div><b>${c.totalHours}h</b><span>learning</span></div><div><b>${c.weeks} wk</b><span>at 5h/week</span></div></div>
       ${c.steps.length ? `<div class="timeline compact">${c.steps.map((s, i) => `<div class="t-item reveal" style="--i:${i}"><div class="course">
-        <div class="thumb" style="background:${PROVIDER_COLORS[s.course.provider] || '#6366f1'}">${initials(s.course.provider)}</div>
+        <div class="thumb" style="background:${PROVIDER_COLORS[s.course.provider] || 'var(--sapAvatar_10_Background)'}">${initials(s.course.provider)}</div>
         <div style="flex:1"><h4>${esc(s.course.title)}</h4><div class="meta"><span>${esc(s.course.provider)}</span><span>${esc(s.course.duration)}</span><span>Closes: ${esc(label(s.skill))} (${esc(s.importance === 'requested' ? 'you asked' : s.importance)})</span></div></div>
         <a class="btn btn-ghost btn-sm" href="${esc(s.course.url)}" target="_blank" rel="noopener">Open</a></div></div>`).join('')}</div>` : '<div class="empty" style="padding:16px">No gaps. You can apply today.</div>'}</div>`;
 
@@ -498,7 +498,7 @@ function drawCard(c) {
       <p class="fine" style="margin:6px 0 0">Also emailed (demo: not sent).</p></div>`;
 
   if (c.type === 'courseRec') return `<div class="card-in"><div class="course">
-      <div class="thumb" style="background:${PROVIDER_COLORS[c.course.provider] || '#6366f1'}">${initials(c.course.provider || '?')}</div>
+      <div class="thumb" style="background:${PROVIDER_COLORS[c.course.provider] || 'var(--sapAvatar_10_Background)'}">${initials(c.course.provider || '?')}</div>
       <div style="flex:1"><h4>${esc(c.course.title)}</h4><div class="meta"><span>${esc(c.course.provider)}</span><span>${esc(c.course.duration)}</span>${c.course.skill ? `<span>Closes: ${esc(label(c.course.skill))}</span>` : ''}</div></div></div>
       ${c.note ? `<div class="barrier"><span class="st ok">${esc(c.by || 'Counsellor')}</span> ${esc(c.note)}</div>` : ''}
       <div class="row" style="margin-top:8px"><a class="btn btn-primary btn-sm" href="#/my-courses">Accept in My assigned courses →</a></div></div>`;
@@ -621,7 +621,7 @@ async function counsellor() {
   try {
     desk.cases = JSON.parse((await (await fetch('/api/cases()')).json()).value);
   } catch (e) {
-    document.getElementById('caseList').innerHTML = '<div class="empty">Could not load cases. Is <code>cds watch</code> running?</div>'; return;
+    document.getElementById('caseList').innerHTML = '<div class="empty">Could not load the cases just now. Please try again in a moment.</div>'; return;
   }
   const order = { sent: 0, changes: 1, active: 2, approved: 3 };
   desk.cases.sort((a, b) => order[a.status] - order[b.status]);
@@ -698,7 +698,7 @@ async function runWatch(days) {
     toast(r.alerts.length ? `${plural(r.alerts.length, 'alert')} for ${new Set(r.alerts.map((a) => a.code)).size} people (as of ${r.asOf})` : `Nothing new for ${r.scanned} watched ${r.scanned === 1 ? 'person' : 'people'} as of ${r.asOf}`);
     chat.messages = [];   // the person's chat reloads with the new alerts
     openCase(desk.id);
-  } catch (e) { toast('The watch could not run. Did you run cds deploy?'); }
+  } catch (e) { toast('The watch could not run just now. Please try again.'); }
 }
 
 async function markHired() {
@@ -767,7 +767,7 @@ function assignedCard(x, i) {
     : x.status === 'declined' ? `<button class="btn btn-ghost btn-sm" data-course-do="accept" data-id="${esc(x.ID)}">Accept after all</button>`
     : `<a class="btn btn-ghost btn-sm" href="${esc(c.url)}" target="_blank" rel="noopener">Open again</a>`;
   return `<div class="card hover reveal assigned ${x.source}" style="--i:${i}">
-    <div class="row between"><div class="course"><div class="thumb" style="background:${PROVIDER_COLORS[c.provider] || '#6366f1'}">${initials(c.provider || '?')}</div></div><span class="pill ${tone}">${esc(st)}</span></div>
+    <div class="row between"><div class="course"><div class="thumb" style="background:${PROVIDER_COLORS[c.provider] || 'var(--sapAvatar_10_Background)'}">${initials(c.provider || '?')}</div></div><span class="pill ${tone}">${esc(st)}</span></div>
     <h3>${esc(c.title)}</h3><div class="muted" style="font-size:14px">${esc(c.provider)} · ${esc(c.duration)} · ${esc(c.level)}</div>
     <div class="assigned-by">${sourceText(x)}</div>
     ${x.note ? `<p class="assigned-note">${x.source === 'counsellor' ? '“' + esc(x.note) + '”' : esc(x.note)}</p>` : ''}
@@ -784,7 +784,7 @@ async function myCoursesPage() {
   const list = await loadMyCourses();
   const box = document.getElementById('mineBox');
   document.querySelector('.ctabs')?.replaceWith(Object.assign(document.createElement('div'), { innerHTML: courseTabs('mine') }).firstElementChild);
-  if (!list) { box.innerHTML = '<div class="empty">Could not load your courses. Is <code>cds watch</code> running?</div>'; return; }
+  if (!list) { box.innerHTML = '<div class="empty">Could not load your courses just now. Please try again in a moment.</div>'; return; }
   const by = (st) => list.filter((x) => x.status === st);
   const waiting = by('suggested'), mine = by('accepted'), done = by('done'), declined = by('declined');
   const hrs = mine.reduce((n, x) => n + hours(x.course?.duration || ''), 0);
@@ -866,7 +866,7 @@ async function catalog(kind) {
     items = isJobs ? await get('Roles?$expand=requiredSkills($expand=skill)') : await get('Courses?$expand=skill');
     if (!isJobs && ssAuth.get() && ssAuth.get().role !== 'counsellor') loadMyCourses().then(() => { const t = document.querySelector('.ctabs'); if (t) t.outerHTML = courseTabs('all'); });
   } catch (e) {
-    document.getElementById('list').innerHTML = '<div class="empty">Could not load data. Is <code>cds watch</code> running?</div>';
+    document.getElementById('list').innerHTML = '<div class="empty">Could not load this page just now. Please try again in a moment.</div>';
     return;
   }
   const facets = ['All', ...new Set(items.map((x) => (isJobs ? x.type : x.provider)))];
@@ -885,7 +885,7 @@ async function catalog(kind) {
         <div class="row" style="margin-top:14px">${(x.requiredSkills || []).map((rs) => `<span class="chip ${rs.importance === 'required' ? 'on' : ''}">${esc(label(rs.skill?.name))}</span>`).join('')}</div>
       </div>` : `
       <div class="card hover reveal" style="--i:${i}">
-        <div class="row between"><div class="course"><div class="thumb" style="background:${PROVIDER_COLORS[x.provider] || '#6366f1'}">${initials(x.provider)}</div></div><span class="badge">${esc(x.level)}</span></div>
+        <div class="row between"><div class="course"><div class="thumb" style="background:${PROVIDER_COLORS[x.provider] || 'var(--sapAvatar_10_Background)'}">${initials(x.provider)}</div></div><span class="badge">${esc(x.level)}</span></div>
         <h3>${esc(x.title)}</h3><div class="muted" style="font-size:14px">${esc(x.provider)} · ${esc(x.duration)}</div>
         <div class="row between" style="margin-top:16px"><span class="chip on">${esc(label(x.skill?.name))}</span>
           <a class="btn btn-ghost btn-sm" href="${esc(x.url)}" target="_blank" rel="noopener">Open →</a></div>
@@ -921,7 +921,7 @@ async function impact() {
       <p>How many people SkillSetu helps back into work, the skills it finds and how much fairer hiring gets, district by district.</p></div>
     <div id="impactBody"><div class="skeleton" style="height:320px"></div></div></div></div>`;
   try { impactData = JSON.parse((await (await fetch('/api/impact()')).json()).value); }
-  catch (e) { document.getElementById('impactBody').innerHTML = '<div class="empty">Could not load. Run <code>cds deploy</code> and restart <code>cds watch</code>.</div>'; return; }
+  catch (e) { document.getElementById('impactBody').innerHTML = '<div class="empty">Could not load the impact data just now. Please try again in a moment.</div>'; return; }
   const { live, districts } = impactData;
   const T = districts.reduce((a, d) => { for (const k of ['people', 'hiddenSkills', 'approved', 'placed', 'women', 'coursesDone']) a[k] = (a[k] || 0) + d[k]; return a; }, {});
   const avg = (k) => districts.reduce((a, d) => a + +d[k], 0) / (districts.length || 1);
@@ -1084,7 +1084,7 @@ async function submitLogin(portal) {
     loginState.mode = 'signin';
     toast(signup ? `Welcome, ${acc.displayName}! Your account is ready.` : `Signed in as ${acc.displayName}`);
     location.hash = acc.role === 'counsellor' ? '#/overview' : '#/';
-  } catch (e) { fail('Could not reach the server. Is cds watch running?'); }
+  } catch (e) { fail('Could not reach SkillSetu just now. Please try again in a moment.'); }
   finally { btn.disabled = false; }
 }
 
@@ -1241,7 +1241,7 @@ document.getElementById('shellbar').addEventListener('profile-click', (e) => { e
 document.getElementById('themeToggle').setAttribute('icon', document.documentElement.dataset.theme === 'dark' ? 'light-mode' : 'dark-mode');
 
 document.body.insertAdjacentHTML('beforeend', `<svg width="0" height="0" style="position:absolute"><defs>
-  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#1b90ff"/><stop offset="1" stop-color="#0064d9"/></linearGradient></defs></svg>`);
+  <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:var(--sapChart_OrderedColor_1, #168eff)"/><stop offset="1" style="stop-color:var(--sapChart_OrderedColor_1, #168eff)"/></linearGradient></defs></svg>`);
 
 window.addEventListener('hashchange', route);
 route();
