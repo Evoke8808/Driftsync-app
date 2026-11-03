@@ -14,13 +14,13 @@ async function search(query, { max = 5 } = {}) {
     const res = await fetch('https://api.tavily.com/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ query: String(query).slice(0, 380), max_results: max, search_depth: 'basic', topic: 'general' }),
+      body: JSON.stringify({ query: String(query).slice(0, 380), max_results: max, search_depth: 'basic', topic: 'general', include_answer: 'basic' }),
       signal: AbortSignal.timeout(12000)
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) return { error: body.detail?.error || body.error || `search answered ${res.status}` };
     const results = (body.results || []).map((r) => ({ title: String(r.title || r.url).slice(0, 140), url: r.url, content: String(r.content || '').slice(0, 900) }));
-    return { results, provider: 'Tavily web search', ms: Date.now() - t0 };
+    return { results, answer: typeof body.answer === 'string' ? body.answer.trim() : '', provider: 'Tavily web search', ms: Date.now() - t0 };
   } catch (e) {
     return { error: e.name === 'TimeoutError' ? 'web search did not answer in time' : e.message };
   }

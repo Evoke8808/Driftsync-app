@@ -34,7 +34,7 @@ module.exports = {
           `${about ? `About the person (${about}).\n` : ''}Question: ${question}\n\nSearch results:\n` +
           found.results.map((r, i) => `[${i + 1}] ${r.title} (${host(r.url)}): ${r.content}`).join('\n'), { log, temperature: 0.2, info: aiInfo });
         const answer = typeof res?.data?.answer === 'string' ? res.data.answer.trim() : '';
-        out = { text: answer || `I found ${found.results.length} pages about this. The sources are below.`, sources: found.results.map((r) => ({ title: r.title, url: r.url })),
+        out = { text: answer || found.answer || `I found ${found.results.length} pages about this. The sources are below.`, sources: found.results.map((r) => ({ title: r.title, url: r.url })),
           provider: found.provider + (res ? ` + ${res.provider}` : ''), model: res?.model || null, ms: found.ms + (res?.ms || 0) };
       } else if (found.error && aiInfo && !aiInfo.error) aiInfo.error = found.error;
     }

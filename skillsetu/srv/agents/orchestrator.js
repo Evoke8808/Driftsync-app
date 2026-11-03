@@ -26,7 +26,7 @@ const QUESTIONS = require('./skills-discovery').QUESTIONS;
 // Clear keywords route without spending an AI call (the free AI tier has tight limits).
 // English, Hinglish and Hindi (Devanagari) words; anything unclear goes to the AI router.
 const RULES = [
-  ['research', /\b(search (the )?(web|internet|online)|google (it|this|for)|look (it |this )?up|on the (web|internet)|latest|news|recent(ly)?|this year|right now|current(ly)? (market|salary|salaries|demand)|which companies|companies (are |that are )?hiring|who is hiring|hiring now|government scheme|yojana|scheme for|average salary|salary in [a-z]+)\b|खोज|योजना|ताज़ा/i],
+  ['research', /\b(search (the )?(web|internet|online)|google (it|this|for)|look (it |this )?up|on the (web|internet)|latest|news|recent(ly)?|this year|right now|current(ly)? (market|salary|salaries|demand)|which companies|companies (are |that are )?hiring|who is hiring|hiring now|government schemes?|schemes? for|yojana|average salary|salary in [a-z]+)\b|खोज|योजना|ताज़ा/i],
   ['growth', require('./after-hire').GOT_JOB],
   ['growth', /promotion|\bpromoted\b|\braise\b|hike|grow in my (job|career)|next step in my (job|career)|career growth|तरक्की|प्रमोशन/i],
   ['shield', /(is|will) my (job|role|position) (be )?(safe|secure|at risk|replaced|automated)|job (security|safe|at risk)|lose my job|losing my job|layoffs?|laid off|fired|replace (me|my job|us)|replacing (me|us)|scared about my job|worried about my job|safer (job|role)|internal (move|transfer|role|opening)|move (to )?(another|a different) (team|role|department)|(ai|chatbot|automation)[^.?]{0,40}(my job|take over|replace)|नौकरी (जाने|चली जाएगी|खतरे)|नौकरी सुरक्षित|छंटनी/i],
