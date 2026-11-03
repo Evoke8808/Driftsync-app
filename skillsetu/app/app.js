@@ -210,6 +210,14 @@ const risk = (r) => `<span class="pill ${r === 'Low' ? 'good' : r === 'High' ? '
 const demand = (d) => `<span class="pill ${d === 'High' ? 'good' : d === 'Low' ? 'bad' : 'warn'}">Demand: ${esc(d || 'n/a')}</span>`;
 const aiTag = (provider, model) => provider ? `<span class="ai-badge">${esc(provider)}${model ? ' · ' + esc(prettyModel(model)) : ''}</span>` : '<span class="badge">Rules (AI offline)</span>';
 
+// The side panel shows one thing at a time (case file, agent trace or past chats), so the page stays calm.
+const sideTab = () => { try { return localStorage.getItem('ss-side') || 'caseCard'; } catch (e) { return 'caseCard'; } };
+function showSide(id, remember) {
+  document.querySelectorAll('.side-tabs [data-side]').forEach((b) => { const on = b.dataset.side === id; b.classList.toggle('on', on); b.setAttribute('aria-selected', on); if (on) b.classList.remove('dot'); });
+  document.querySelectorAll('.side-pane').forEach((p) => p.classList.toggle('on', p.id === id));
+  if (remember) try { localStorage.setItem('ss-side', id); } catch (e) {}
+}
+
 function journey() {
   view.innerHTML = `<div class="page journey-page"><div class="container">
     <div class="page-head"><div class="row between"><h1>Talk to SkillSetu</h1><div class="row"><button class="btn btn-ghost btn-sm" id="wideChat" title="Hide the side panels and give the chat the whole screen">Focus chat</button><button class="btn btn-ghost btn-sm" id="newChat" title="Clear this chat and start a new person">New chat</button></div></div>
@@ -226,12 +234,19 @@ function journey() {
         </form>
       </section>
       <aside class="side">
-        <div class="side-card" id="caseCard"></div>
-        <div class="side-card" id="histCard"></div>
-        <div class="side-card" id="traceCard"></div>
+        <div class="side-tabs" role="tablist" aria-label="Side panel">
+          <button role="tab" data-side="caseCard">Case file</button>
+          <button role="tab" data-side="traceCard">Agent trace</button>
+          <button role="tab" data-side="histCard">My chats</button>
+        </div>
+        <div class="side-card side-pane" id="caseCard" role="tabpanel"></div>
+        <div class="side-card side-pane" id="traceCard" role="tabpanel"></div>
+        <div class="side-card side-pane" id="histCard" role="tabpanel"></div>
       </aside>
     </div>
   </div></div>`;
+  showSide(sideTab());
+  document.querySelector('.side-tabs').addEventListener('click', (e) => { const b = e.target.closest('[data-side]'); if (b) showSide(b.dataset.side, true); });
   const ta = document.getElementById('msg');
   ta.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat({ message: ta.value }); } });
   ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight, 160) + 'px'; });
@@ -535,6 +550,7 @@ function drawCase() {
 function drawTrace() {
   const el = document.getElementById('traceCard');
   if (!el) return;
+  if (!el.classList.contains('on') && chat.trace.length) document.querySelector('.side-tabs [data-side="traceCard"]')?.classList.add('dot');
   el.innerHTML = `<div class="row between"><h4>Agent trace</h4><span class="muted" style="font-size:12px">why the AI did what it did</span></div>
     <div class="trace">${chat.trace.length ? chat.trace.map((t) => t.turn !== undefined
       ? `<div class="tr-turn">“${esc(String(t.turn).slice(0, 60))}${String(t.turn).length > 60 ? '…' : ''}”</div>`

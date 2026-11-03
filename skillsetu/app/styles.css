@@ -1020,3 +1020,30 @@ body.signed-out .login-page { padding-top: 48px; }
 .lp-stat small { display: block; color: var(--text-2); font-size: 11px; margin-top: 2px; }
 @media (max-width: 900px) { .lp-perks { grid-template-columns: 1fr; } .lp-pic { display: none; } }
 .login-page { padding-left: 16px; padding-right: 16px; }
+
+/* ---------- My Journey: more room to breathe ---------- */
+.journey-page .chat-layout { grid-template-columns: minmax(0, 1fr) 360px; gap: 24px; }
+.journey-page .metro { margin-bottom: 20px; padding: 14px 20px 12px; }
+.journey-page .chat-head { padding: 14px 22px; }
+.journey-page .chat-log { padding: 28px 34px; gap: 24px; }
+.journey-page .msg:has(.card-in) { width: 100%; max-width: 100%; }
+.journey-page .msg:has(.card-in) .bubble { width: 100%; box-sizing: border-box; }
+.journey-page .bubble { padding: 14px 18px; }
+.journey-page .card-in { padding: 18px; margin-top: 14px; }
+.skill-grid { grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.skill-tile { padding: 16px 18px; gap: 10px; }
+.journey-page .suggest { padding: 6px 34px 10px; gap: 10px; }
+.journey-page .composer { padding: 16px 22px; gap: 12px; }
+/* Side panel: tabs, one pane at a time */
+.side-tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface); border-radius: 12px; box-shadow: var(--shadow); }
+.side-tabs button { flex: 1; position: relative; border: 0; background: transparent; color: var(--text-2); font: inherit; font-size: 14px; font-weight: 600; padding: 10px 8px; border-radius: 9px; cursor: pointer; }
+.side-tabs button:hover { color: var(--text); }
+.side-tabs button.on { background: var(--sapButton_Selected_Background, #edf5ff); color: var(--sapButton_Selected_TextColor, #0064d9); }
+.side-tabs button.dot::after { content: ""; position: absolute; top: 8px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--sapBrandColor, #0070f2); }
+.side-pane { display: none; padding: 20px 22px; }
+.side-pane.on { display: block; }
+.side-pane .kv { padding: 12px 0; grid-template-columns: 100px 1fr; }
+.side-pane .trace { max-height: calc(100dvh - 300px); gap: 10px; }
+.side-pane .tr { padding: 10px 12px; }
+.journey-page .side { gap: 14px; }
+@media (max-width: 720px) { .journey-page .chat-log { padding: 16px; gap: 18px; } .journey-page .suggest { padding: 6px 16px 10px; } .journey-page .composer { padding: 12px; } }
