@@ -30,7 +30,9 @@ Counsellor approves ── SuccessFactors connector ── JobApplication with t
 
 Every agent decision is shown in the **Agent trace** panel, including each MCP call and which SAP system answered.
 
-**Stack:** SAP CAP (Node.js) · SAP UI5 Web Components (Fiori Horizon) · SAP SuccessFactors · SAP HANA Cloud · Model Context Protocol · Generative AI (Gemini / SAP AI Core) with a rules fallback · SQLite for local runs.
+**Stack:** SAP CAP (Node.js) on **SAP HANA Cloud** · SAP UI5 Web Components (Fiori Horizon) · SAP SuccessFactors · Model Context Protocol · hosted on **SAP BTP Cloud Foundry** · Generative AI (Gemini / SAP AI Core) with a rules fallback.
+
+**Database:** `npm start` uses SAP HANA Cloud when a HANA login is set (`sap-key.json` or `HANA_*` variables). The first start creates the tables and demo data; later starts keep the data. If HANA can't be reached it falls back to a local SQLite file, so a demo never stops.
 
 ## Run it
 

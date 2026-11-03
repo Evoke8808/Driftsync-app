@@ -6,6 +6,7 @@
   "license": "UNLICENSED",
   "private": true,
   "dependencies": {
+    "@cap-js/hana": "^3.1.2",
     "@cap-js/sqlite": "^3",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@sap-ai-sdk/orchestration": "^2",
@@ -16,12 +17,13 @@
     "zod": "^4.6.7"
   },
   "scripts": {
-    "start": "cds-serve",
+    "start": "node start.js",
     "watch": "cds watch",
     "sap:check": "node mcp/sap/check.js",
     "sap:hana-setup": "node mcp/sap/hana-setup.js",
     "build": "npm install && cds-deploy",
-    "start:cf": "cds-deploy && cds-serve"
+    "start:cf": "node start.js",
+    "start:sqlite": "cds-serve"
   },
   "cds": {
     "requires": {
