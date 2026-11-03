@@ -19,7 +19,7 @@
     "watch": "cds watch",
     "sap:check": "node mcp/sap/check.js",
     "sap:hana-setup": "node mcp/sap/hana-setup.js",
-    "build": "npm install && cds deploy --to sqlite:db.sqlite"
+    "build": "npm install && cds-deploy"
   },
   "cds": {
     "requires": {
@@ -42,6 +42,6 @@
     }
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   }
 }
