@@ -11,16 +11,15 @@
     "@sap/cds": "^10",
     "express": "^4",
     "hdb": "^0.19.12",
-    "zod": "^4.6.7"
-  },
-  "devDependencies": {
+    "zod": "^4.6.7",
     "@cap-js/sqlite": "^3"
   },
   "scripts": {
     "start": "cds-serve",
     "watch": "cds watch",
     "sap:check": "node mcp/sap/check.js",
-    "sap:hana-setup": "node mcp/sap/hana-setup.js"
+    "sap:hana-setup": "node mcp/sap/hana-setup.js",
+    "build": "npm install && cds deploy --to sqlite:db.sqlite"
   },
   "cds": {
     "requires": {
@@ -41,5 +40,8 @@
         }
       }
     }
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
