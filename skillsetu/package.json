@@ -30,7 +30,7 @@
         }
       },
       "SFRecruiting": {
-        "[production]": {
+        "[tenant]": {
           "kind": "odata-v2",
           "model": "srv/external/SFRecruiting",
           "credentials": {
@@ -38,6 +38,9 @@
             "path": "/odata/v2"
           }
         }
+      },
+      "auth": {
+        "kind": "mocked"
       }
     }
   },
