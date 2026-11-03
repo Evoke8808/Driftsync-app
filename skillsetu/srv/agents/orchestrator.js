@@ -15,10 +15,11 @@ const AGENTS = [
   require('./human-loop'),
   require('./why-not'),
   require('./job-risk'),
-  require('./after-hire')
+  require('./after-hire'),
+  require('./setu-chat')
 ];
 const BY_ID = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
-const PIPELINE = ['skills', 'growth', 'shield', 'explain', 'market', 'matching', 'pathway', 'readiness', 'human'];
+const PIPELINE = ['skills', 'growth', 'shield', 'explain', 'market', 'matching', 'pathway', 'readiness', 'human', 'chat'];
 const QUESTIONS = require('./skills-discovery').QUESTIONS;
 
 // Clear keywords route without spending an AI call (the free AI tier has tight limits).
@@ -40,6 +41,10 @@ const REQUEST = /\?|^(show|find|give|what|which|how|can|could|tell me|i want|i n
 
 const LOG = cds.log('orchestrator');
 
+// Greetings, thanks and questions about SkillSetu itself.
+const SMALL_TALK = /^(hi+|hello|hey|hii+|namaste|namaskar|hola|thanks?|thank you|thank u|thx|ty|ok(ay)?|cool|nice|great|awesome|bye|good (morning|afternoon|evening|night)|नमस्ते|धन्यवाद|शुक्रिया)(?![a-z])[\s!.,?🙏😊]*$/i;
+const ABOUT_US = /\b(who are you|what are you|what (can|do) you do|what is skillsetu|what's skillsetu|how does (this|skillsetu|it|setu) work|how do (i|you) use|are you (a|an) (ai|bot|human)|tum kaun|aap kaun)\b|तुम कौन|आप कौन/i;
+
 // "My target role is data entry specialist", "I want to become an event planner": a job the person names as their goal.
 const TARGET = /\b(target|goal|aim|want|wanna|would like|i'?d like|like to|interested|become|dream|prefer|apply for|looking for|switch to|planning to be)\b|बनना|बनूँ|चाहता|चाहती|banna|banana hai/i;
 const NOT_TARGET = /\bwhy\b|reject|not selected|didn[’']?t get|safe|risk|replace/i;
@@ -47,6 +52,8 @@ const NOT_TARGET = /\bwhy\b|reject|not selected|didn[’']?t get|safe|risk|repla
 async function decide(cf, message, intent, cat) {
   const needsSkills = ['market', 'pathway', 'matching', 'readiness', 'explain', 'shield', 'growth'];
   if (intent && BY_ID[intent] && !(needsSkills.includes(intent) && !cf.skills.length)) return { agents: [intent], by: 'button', reason: `Button pressed: ${BY_ID[intent].name}` };
+  // Small talk and questions about SkillSetu get a conversational answer from Setu, even before the story.
+  if (message && (SMALL_TALK.test(message.trim()) || ABOUT_US.test(message))) return { agents: ['chat'], by: 'rules', reason: 'Small talk or a question about SkillSetu, so Setu answers in chat' };
   if (!cf.skills.length) return { agents: ['skills'], by: 'rules', reason: 'No skills on file yet, so Skills Discovery goes first' };
   const named = cat && message && TARGET.test(message) && !NOT_TARGET.test(message) && roleInText(message, cat);
   if (named) return { agents: ['pathway'], by: 'rules', roleID: named.ID, reason: `You named your target job: ${named.title}, so Learning Pathway plans for it` };

@@ -177,7 +177,8 @@ const AGENT_META = {
   explain: { name: 'Why-Not Explainer', stop: 'Why not?', icon: ic('bulb'), color: 'var(--sapAccentColor1)' },
   shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: 'var(--sapAccentColor2)' },
   growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: 'var(--sapAccentColor8)' },
-  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' }
+  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' },
+  chat: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' }
 };
 // Metro map: the main line is the usual journey, the branch line holds the help you can ask for any time.
 const METRO_MAIN = ['orchestrator', 'skills', 'market', 'pathway', 'matching', 'readiness', 'human'];
@@ -229,7 +230,7 @@ function journey() {
         <div class="chat-log" id="chatLog"></div>
         <div class="suggest" id="suggest"></div>
         <form class="composer" id="composer">
-          <textarea id="msg" rows="1" placeholder="Type in any language: English, हिंदी, Hinglish…"></textarea>
+          <textarea id="msg" rows="1" placeholder="Message Setu in any language: English, हिंदी, Hinglish…"></textarea>
           <button class="btn btn-primary" id="sendBtn" type="submit" aria-label="Send">Send</button>
         </form>
       </section>
@@ -327,7 +328,7 @@ async function sendChat({ message = '', intent = null, roleID = null, labelText 
     chatHistory.add(out.caseID);
     chat.active = out.trace.map((t) => t.agent);
     chat.trace = [{ turn: labelText || text }, ...out.trace, ...chat.trace].slice(0, 60);
-    chat.messages.push(...out.replies.map((r) => ({ role: 'agent', ...r })));
+    chat.messages.push(...out.replies.map((r) => ({ role: 'agent', ...r, fresh: true })));
     chat.suggestions = out.suggestions;
     chat.caseFile = out.caseFile;
   } catch (e) {
@@ -342,7 +343,7 @@ function drawChat(thinking = false) {
   const log = document.getElementById('chatLog');
   if (!log) return;
   const welcome = `<div class="msg agent" style="--ag:${agentColor('orchestrator')}">
-      <div class="who"><span class="av">${ic('bridge')}</span>Setu · orchestrator</div>
+      <div class="who"><span class="av">${ic('bridge')}</span>Setu</div>
       <div class="bubble"><p>Namaste${chat.name || ssAuth.get()?.role === 'user' ? ', ' + esc(chat.name || ssAuth.get().displayName) : ''}! Tell me about your life and work so far, paid or unpaid. Home, family and community work all count. Write in any language.</p>
         ${chat.caseID || ssAuth.get()?.username ? '' : `<div class="name-ask"><input id="nameIn" maxlength="60" placeholder="Your first name (optional)" value="${esc(chat.name)}">
           <span class="fine">Only your counsellor sees your name. Employers see your case ID and skills, nothing else.</span></div>`}
@@ -350,8 +351,10 @@ function drawChat(thinking = false) {
         <div class="row">${PERSONAS.map((p, i) => `<button class="chip" data-say="${i}">${p.name}’s story</button>`).join('')}
           <button class="chip" data-say="hi">Priya in Hinglish</button><button class="chip" data-say="army">Vikram, ex-Army</button><button class="chip" data-say="army-hi">Vikram in Hindi</button><button class="chip" data-say="meena">Meena, job at risk</button></div></div></div>`;
   log.innerHTML = welcome + chat.messages.map(drawMsg).join('') + (thinking ? `<div class="msg agent thinking" style="--ag:${agentColor('orchestrator')}">
-      <div class="who"><span class="av">${ic('bridge')}</span>Setu · orchestrator</div><div class="bubble"><span class="dots"><i></i><i></i><i></i></span> choosing the right agent…</div></div>` : '');
+      <div class="who"><span class="av">${ic('bridge')}</span>Setu</div><div class="bubble"><span class="dots"><i></i><i></i><i></i></span> Setu is typing…</div></div>` : '');
   log.scrollTop = log.scrollHeight;
+  chat.messages.forEach((m) => { m.fresh = false; });
+  typeOut(log);
   document.getElementById('suggest').innerHTML = chat.suggestions.map((s, i) =>
     `<button class="chip sugg" data-sugg="${i}">${esc(s.label)} →</button>`).join('');
   document.getElementById('sendBtn').disabled = chat.busy;
@@ -387,7 +390,29 @@ function drawMsg(m) {
   const id = m.agent || 'orchestrator', a = AGENT_META[id] || AGENT_META.orchestrator;
   const who = m.role === 'counsellor' ? 'Counsellor (a person)' : a.name;
   return `<div class="msg agent" style="--ag:${a.color}"><div class="who"><span class="av">${m.role === 'counsellor' ? ic('human') : a.icon}</span>${esc(who)}</div>
-    <div class="bubble"><p>${esc(m.text)}</p>${m.card ? drawCard(m.card) : ''}</div></div>`;
+    <div class="bubble">${m.fresh ? `<p data-type="${esc(m.text)}"></p>` : `<p>${esc(m.text)}</p>`}${m.card ? (m.fresh ? `<div class="after-type" hidden>${drawCard(m.card)}</div>` : drawCard(m.card)) : ''}</div></div>`;
+}
+
+// New replies appear word by word, like a person typing; any card shows once its text is done.
+let typingRun = 0;
+async function typeOut(log) {
+  const run = ++typingRun;
+  const still = () => run === typingRun && document.body.contains(log);
+  const calm = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+  for (const p of [...log.querySelectorAll('p[data-type]')]) {
+    const text = p.dataset.type; p.removeAttribute('data-type');
+    const after = p.parentElement.querySelector(':scope > .after-type');
+    if (calm || !still()) { p.textContent = text; if (after) after.hidden = false; continue; }
+    const words = text.split(/(\s+)/);
+    const delay = Math.max(6, Math.min(30, 1500 / words.length));
+    for (let i = 0; i < words.length; i++) {
+      if (!still()) { p.textContent = text; break; }
+      p.textContent += words[i];
+      if (i % 2 === 0) { log.scrollTop = log.scrollHeight; await new Promise((r) => setTimeout(r, delay)); }
+    }
+    if (after) { after.hidden = false; animateRings(); }
+    log.scrollTop = log.scrollHeight;
+  }
 }
 
 function drawCard(c) {
