@@ -1,0 +1,49 @@
+{
+  "_version": "1.59.0",
+  "sap.app": {
+    "id": "skillsetu.counsellor",
+    "type": "application",
+    "title": "SkillSetu Counsellor Review",
+    "description": "Review cases, approve plans and send applications to SAP SuccessFactors",
+    "applicationVersion": { "version": "1.0.0" },
+    "dataSources": {
+      "mainService": { "uri": "/counsellor/", "type": "OData", "settings": { "odataVersion": "4.0" } }
+    },
+    "crossNavigation": {
+      "inbounds": {
+        "skillsetuCounsellor-display": { "semanticObject": "skillsetuCounsellor", "action": "display", "title": "Counsellor Review", "signature": { "parameters": {}, "additionalParameters": "allowed" } }
+      }
+    }
+  },
+  "sap.ui": { "technology": "UI5", "deviceTypes": { "desktop": true, "tablet": true, "phone": true } },
+  "sap.ui5": {
+    "flexEnabled": false,
+    "dependencies": { "minUI5Version": "1.120.0", "libs": { "sap.m": {}, "sap.ui.core": {}, "sap.fe.templates": {} } },
+    "models": {
+      "": { "dataSource": "mainService", "preload": true, "settings": { "operationMode": "Server", "autoExpandSelect": true, "earlyRequests": false } }
+    },
+    "routing": {
+      "config": {},
+      "routes": [
+        { "pattern": ":?query:", "name": "CasesList", "target": "CasesList" },
+        { "pattern": "Cases({key}):?query:", "name": "CasesObjectPage", "target": "CasesObjectPage" }
+      ],
+      "targets": {
+        "CasesList": {
+          "type": "Component", "id": "CasesList", "name": "sap.fe.templates.ListReport",
+          "options": { "settings": {
+            "contextPath": "/Cases",
+            "variantManagement": "Page",
+            "initialLoad": "Enabled",
+            "navigation": { "Cases": { "detail": { "route": "CasesObjectPage" } } }
+          } }
+        },
+        "CasesObjectPage": {
+          "type": "Component", "id": "CasesObjectPage", "name": "sap.fe.templates.ObjectPage",
+          "options": { "settings": { "contextPath": "/Cases" } }
+        }
+      }
+    }
+  },
+  "sap.fiori": { "registrationIds": [], "archeType": "transactional" }
+}

@@ -590,6 +590,7 @@ async function overview() {
     </div>
     <div class="ov-links">
       <button class="ov-link" data-href="#/counsellor">${ic('employee-approvals', 20)}<b>Review queue</b><span>Skills with evidence, plan, fairness check, AI trace</span></button>
+      <button class="ov-link" data-href="counsellor-fe/index.html">${ic('sap-ui5', 20)}<b>Counsellor Review (SAP Fiori app)</b><span>The same cases as a Fiori Elements list report and object page</span></button>
       <button class="ov-link" data-href="#/impact">${ic('chart', 20)}<b>Impact</b><span>People helped and fairness, district by district</span></button>
       <button class="ov-link" data-href="#/jobs">${ic('suitcase', 20)}<b>Jobs</b><span>The role catalog, including open SAP jobs</span></button>
     </div>`;
@@ -597,7 +598,7 @@ async function overview() {
 
 async function counsellor() {
   view.innerHTML = `<div class="page"><div class="container">
-    <div class="page-head"><div class="row between"><h1>Counsellor desk</h1><span class="signed-as">${ic('employee', 16)} ${esc(ssAuth.get()?.displayName || '')} · ${esc(ssAuth.get()?.username || '')}</span></div>
+    <div class="page-head"><div class="row between"><h1>Counsellor desk</h1><a class="link-btn" href="counsellor-fe/index.html">Open in the SAP Fiori app →</a><span class="signed-as">${ic('employee', 16)} ${esc(ssAuth.get()?.displayName || '')} · ${esc(ssAuth.get()?.username || '')}</span></div>
       <p>A person reviews every plan before anything reaches an employer. You see the skills with evidence, the plan, the fairness check and every AI decision.</p></div>
     <div class="desk"><div class="side-card" id="caseList"><div class="skeleton" style="height:200px"></div></div><div id="caseDetail"></div></div>
   </div></div>`;

@@ -977,7 +977,7 @@ table.data th { font: 700 13px var(--display); text-transform: none; letter-spac
 .ov-grid .case-row { width: 100%; }
 .ov-push { display: flex; gap: 10px; align-items: flex-start; padding: 10px 0; border-top: 1px solid var(--border); font-size: 14px; }
 .ov-push:first-of-type { border-top: 0; }
-.ov-links { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.ov-links { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 18px; }
 .ov-link { display: grid; gap: 4px; text-align: left; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
 .ov-link:hover { border-color: var(--sapSelectedColor, #0064d9); }
 .ov-link span { color: var(--text-2); font-size: 13px; }
