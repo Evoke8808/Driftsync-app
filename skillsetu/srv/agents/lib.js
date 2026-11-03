@@ -245,8 +245,14 @@ function personBarriers(p = {}) {
 }
 
 // A role the person names in a message: the full title, or most of its words ("event planner", "support coach").
+// Job words people write in Devanagari, so a Hindi message can name an English job title.
+const HI_JOB_WORDS = { 'इवेंट': 'event', 'इवेंट्स': 'events', 'प्लानर': 'planner', 'अकाउंट्स': 'accounts', 'अकाउंट': 'accounts', 'असिस्टेंट': 'assistant', 'डेटा': 'data', 'डाटा': 'data',
+  'एंट्री': 'entry', 'स्पेशलिस्ट': 'specialist', 'कोऑर्डिनेटर': 'coordinator', 'कोआर्डिनेटर': 'coordinator', 'ऑपरेशंस': 'operations', 'ऑपरेशन': 'operations', 'कस्टमर': 'customer',
+  'सर्विस': 'service', 'सपोर्ट': 'support', 'सुपरवाइज़र': 'supervisor', 'सुपरवाइजर': 'supervisor', 'शादी': 'wedding', 'प्रोजेक्ट': 'project', 'ऑफिस': 'office', 'फ्रंट': 'front',
+  'एग्जीक्यूटिव': 'executive', 'रिटेल': 'retail', 'स्टोर': 'store', 'ऑनलाइन': 'online', 'सिक्योरिटी': 'security', 'वेयरहाउस': 'warehouse', 'डिस्पैच': 'dispatch', 'किचन': 'kitchen', 'केटरिंग': 'catering' };
+
 function roleInText(text, cat) {
-  const t = String(text || '').toLowerCase();
+  const t = String(text || '').toLowerCase().replace(/[\u0900-\u097F]+/g, (w) => HI_JOB_WORDS[w] || w);
   if (!t) return null;
   const exact = cat.roles.filter((r) => t.includes(r.title.toLowerCase())).sort((a, b) => b.title.length - a.title.length)[0];
   if (exact) return exact;

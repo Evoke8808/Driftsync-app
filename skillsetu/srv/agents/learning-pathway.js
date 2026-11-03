@@ -1,6 +1,6 @@
 // Agent 3: Learning Pathway. The shortest set of short courses that closes the gap to one target role.
 // Required skills first, then preferred; one course per skill, beginner level first. Code only.
-const { rankRoles, roleInText, hours, label, isHindi, keywordSkills } = require('./lib');
+const { rankRoles, roleInText, hours, label, isHindi, keywordSkills, RISK_RANK, salaryTop } = require('./lib');
 
 const HOURS_PER_WEEK = 5;
 const an = (t) => (/^[aeiou]/i.test(t) ? 'an ' : 'a ') + t;
@@ -23,7 +23,15 @@ module.exports = {
 
     // Already fully qualified? Then the plan is for the next role to grow into (better pay or more openings).
     const ready = pick.missingSkills.length === 0;
-    const grow = ready && ranked.find((m) => m.role.ID !== pick.role.ID && m.missingSkills.length > 0 && m.matchPercent >= 33);
+    // The next step up builds on the same skills: most shared skills first, then safer from automation, then better pay.
+    const pickSkills = new Set(cat.roleSkills.filter((rs) => rs.role_ID === pick.role.ID).map((rs) => rs.skill_ID));
+    const shared = (m) => cat.roleSkills.filter((rs) => rs.role_ID === m.role.ID && pickSkills.has(rs.skill_ID)).length;
+    const grow = ready && ranked.filter((m) => m.role.ID !== pick.role.ID && m.missingSkills.length > 0 && m.matchPercent >= 33 && shared(m) > 0)
+      .sort((a, b) => shared(b) - shared(a) || (RISK_RANK[a.role.automationRisk] ?? 1) - (RISK_RANK[b.role.automationRisk] ?? 1)
+        || salaryTop(b.role.salary) - salaryTop(a.role.salary) || b.matchPercent - a.matchPercent)[0];
+    const why = grow ? [shared(grow) && `it uses the same ${grow.matchedSkills.slice(0, 2).map(label).join(' and ')} skills`,
+      (RISK_RANK[grow.role.automationRisk] ?? 1) < (RISK_RANK[pick.role.automationRisk] ?? 1) && `it is safer from automation (${grow.role.automationRisk.toLowerCase()} risk)`,
+      salaryTop(grow.role.salary) > salaryTop(pick.role.salary) && `it pays more (${grow.role.salary})`].filter(Boolean) : [];
     const goal = grow || pick;
 
     const steps = [...goal.missingSkills]
@@ -34,7 +42,11 @@ module.exports = {
       }).filter(Boolean);
     // "I want to learn Excel": a skill the person asks for comes first, even if the role doesn't need it.
     const have = cf.skills.map((s) => s.skill);
-    const wanted = [...new Set(keywordSkills(message || '').map((k) => k.skill))].filter((n) => !have.includes(n) && !steps.some((s) => s.skill === n));
+    // Asked for even if they have it already ("I want to learn Excel better"): the person decides what to learn.
+    // Only when the person asks to learn something, and never from the words of a job title ("data entry specialist").
+    const LEARN = /\blearn|study|course|improve|practi[cs]e|get better|upskill|training|सीख|पढ़|seekh|padh/i;
+    const askText = String(message || '').replace(new RegExp(pick.role.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'ig'), ' ');
+    const wanted = LEARN.test(askText) ? [...new Set(keywordSkills(askText).map((k) => k.skill))].filter((n) => !steps.some((s) => s.skill === n)) : [];
     const extra = wanted.map((n) => {
       const sk = cat.skills.find((s) => s.name === n);
       const course = sk && cat.courses.filter((c) => c.skill_ID === sk.ID).sort((a, b) => (LEVEL[a.level] ?? 3) - (LEVEL[b.level] ?? 3))[0];
@@ -55,7 +67,7 @@ module.exports = {
       : !ready
       ? `To become ${an(pick.role.title)} you’re missing ${steps.length - extra.length} skill${steps.length - extra.length > 1 ? 's' : ''}. ${planText}`
       : grow
-        ? `You already have every skill ${an(pick.role.title)} needs, so you can apply today. To grow from there, you already have ${grow.matchPercent}% of the skills for ${an(grow.role.title)} (${grow.role.salary}). ${planText}`
+        ? `You already have every skill ${an(pick.role.title)} needs, so you can apply today. A good next step is ${an(grow.role.title)}${why.length ? `: ${why.join(', ')}` : ''}. You already have ${grow.matchPercent}% of its skills. ${planText}`
         : `You already have every skill ${an(pick.role.title)} needs. No course needed, you can apply now.`;
 
     const asked = extra.length ? (hi ? ` आपके कहने पर मैंने ${extra.map((e) => label(e.skill)).join(', ')} का कोर्स सबसे पहले रखा है।` : ` As you asked, I put a course for ${extra.map((e) => label(e.skill)).join(', ')} first.`) : '';

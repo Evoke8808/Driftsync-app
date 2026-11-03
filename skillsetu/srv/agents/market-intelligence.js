@@ -1,6 +1,6 @@
 // Agent 2: Market Intelligence. Which roles near the person's skills are hiring, what they pay,
 // and how exposed they are to automation. Pure code over the role catalog: no AI, so no made-up jobs.
-const { rankRoles, isHindi } = require('./lib');
+const { rankRoles, isHindi, roleInText } = require('./lib');
 const sapMcp = require('../integrations/sap-mcp-client');
 
 module.exports = {
@@ -16,6 +16,16 @@ module.exports = {
     // SAP jobs get their own list below, so the main list shows SkillSetu's catalog only.
     const all = rankRoles(names, cat).filter((m) => m.matchPercent > 0 && !sapMcp.isSapRole(m.role.ID));
     const ranked = all.slice(0, 4);
+    // A job the person names ("what about data entry specialist?") goes first, even if it isn't the top match.
+    const asked = roleInText(message, cat);
+    const askedMatch = asked && !sapMcp.isSapRole(asked.ID) && rankRoles(names, cat).find((m) => m.role.ID === asked.ID);
+    if (askedMatch) {
+      const i = ranked.findIndex((m) => m.role.ID === askedMatch.role.ID);
+      if (i >= 0) ranked.splice(i, 1);
+      ranked.unshift(askedMatch);
+      ranked.length = Math.min(ranked.length, 4);
+    }
+    const catalogSize = cat.roles.filter((r) => !sapMcp.isSapRole(r.ID)).length;
 
     if (!ranked.length) {
       return { replies: [{ text: hi ? 'नौकरी ढूँढने से पहले मुझे आपके कुछ और हुनर जानने हैं। अपने काम के बारे में थोड़ा और बताइए।' : 'I need a few more skills before I can find roles. Tell me a bit more about what you’ve done.' }],
@@ -26,11 +36,14 @@ module.exports = {
     const safer = top.role.automationRisk === 'High' ? all.find((m) => m.role.automationRisk === 'Low' && m.matchPercent >= 50) : null;
     if (safer && !ranked.includes(safer)) ranked[3] = safer;
     const safe = ranked.filter((m) => m.role.automationRisk === 'Low').length;
-    let text = `With your ${names.length} skill${names.length === 1 ? '' : 's'}, ${top.role.title} is the closest fit at ${top.matchPercent}%. ` +
+    let text = `I compared your ${names.length} skill${names.length === 1 ? '' : 's'} with all ${catalogSize} jobs in SkillSetu’s catalog. ` +
+      (askedMatch ? `You asked about ${top.role.title}: you already have ${top.matchPercent}% of its skills (${top.role.salary}, ${top.role.type}, ${top.role.demand.toLowerCase()} hiring demand). `
+        : `${top.role.title} is your closest fit at ${top.matchPercent}%. `) +
       (safe === ranked.length ? (ranked.length === 1 ? 'It has low automation risk.' : ranked.length === 2 ? 'Both have low automation risk.' : `All ${ranked.length} have low automation risk.`)
         : safe === 0 ? 'Each carries some automation risk, so adding a skill or two matters.' : `${safe} of these ${ranked.length} roles ${safe === 1 ? 'has' : 'have'} low automation risk.`);
     if (hi) {
-      text = `आपके ${names.length} हुनर के साथ ${top.role.title} सबसे करीब है (${top.matchPercent}% मेल)। ` +
+      text = `मैंने आपके ${names.length} हुनर को SkillSetu की सभी ${catalogSize} नौकरियों से मिलाया। ` +
+        (askedMatch ? `${top.role.title} के लिए आपके पास ${top.matchPercent}% हुनर पहले से हैं (${top.role.salary})। ` : `${top.role.title} सबसे करीब है (${top.matchPercent}% मेल)। `) +
         (safe === ranked.length ? (ranked.length === 1 ? 'इसमें ऑटोमेशन का खतरा कम है।' : 'इन सभी में ऑटोमेशन का खतरा कम है।')
           : safe === 0 ? 'इन सबमें कुछ ऑटोमेशन का खतरा है, इसलिए एक-दो नए हुनर जोड़ना फ़ायदेमंद होगा।' : `इनमें से ${safe} नौकरियों में ऑटोमेशन का खतरा कम है।`);
       if (cf.profile.forces) text += ` आपकी फ़ौज की सेवा${cf.profile.forces.rank ? ` (${cf.profile.forces.rank})` : ''} को मैंने नागरिक हुनर में बदला है, इसलिए कंपनियाँ इसे समझ पाएँगी।`;
@@ -51,7 +64,7 @@ module.exports = {
 
     return {
       replies: [{ text, card: { type: 'roles', roles: ranked.map(slim), sap: sap?.jobs.length ? { source: sap.source, system: sap.system, total: sap.total, jobs: sap.jobs } : null } }],
-      note: `${ranked.length} roles, top ${top.role.title} ${top.matchPercent}%${sap ? `; ${sap.fits} open SAP jobs fit` : '; SAP MCP not reachable'}`,
+      note: `${askedMatch ? `asked about ${top.role.title}; ` : ''}compared ${names.length} skills with ${catalogSize} catalog jobs; top ${top.role.title} ${top.matchPercent}%${sap ? `; ${sap.fits} of ${sap.total} open SAP jobs fit` : '; SAP MCP not reachable'}`,
       trace: sap ? [sapMcp.traceOf(sap)] : [],
       suggestions: [
         { label: hi ? `${top.role.title} के लिए प्लान` : `Plan for ${top.role.title}`, intent: 'pathway', roleID: top.role.ID },

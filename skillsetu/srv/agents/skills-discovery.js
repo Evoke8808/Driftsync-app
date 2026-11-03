@@ -68,12 +68,15 @@ const SYSTEM = (allowed, known, hints) =>
   'Read the latest answer and do four things: ' +
   '1) extract NEW skills from the latest answer, each with a short quote from it as the reason; ' +
   '2) note facts useful for a fairness check if stated: age, years of career gap (only time the person says they were away from work, e.g. a break at home; running a group, shop or business is work, not a gap), education ("degree" or "none"), whether they need workplace accessibility, preferred work type (full-time, part-time, remote) and city; ' +
-  '3) write "ack": ONE warm sentence (max 20 words) in the same language and script the person used, saying what you noticed in their experience; ' +
+  '3) write "ack": ONE plain, specific sentence (max 20 words) in the same language and script the person used, naming the experience you turned into skills, e.g. "Running the household budget and school events shows budgeting and planning." No praise words (wonderful, impressive, amazing, great); ' +
   '4) write ONE short follow-up question (max 25 words) in the same language and script, ' +
   'aimed at a skill not yet found, or at work preferences if those are unknown. Never ask about age, religion, caste or marital status. ' +
   'Return JSON only: {"skills":[{"skill":"<name from list>","reason":"<quote>"}],"rejected":["<skill>"],' +
   '"profile":{"age":null,"gapYears":null,"education":null,"needsAccommodation":null},' +
   '"prefs":{"type":null,"location":null},"ack":"<sentence>","question":"<follow-up question>"}';
+
+const HINGLISH = /\b(aap|aapka|aapki|kya|hai|hain|kis|kaam|baat|mujhe|nahi|aur|bhi|ke liye)\b/i;
+const PRAISE = /wonderful|amazing|impressive|incredible|fantastic|awesome|great (job|work|experience)|truly|excellent|inspiring|remarkable|commendable|शानदार|बहुत बढ़िया|behtareen|kamaal|zabardast/i;
 
 // Technical skills need explicit evidence, whoever suggested them.
 const NEEDS_PROOF = { excel: /excel|spreadsheet|google sheet|\bsheets?\b|computer|laptop|tally|software|एक्सेल|कंप्यूटर|शीट/i };
@@ -113,11 +116,20 @@ module.exports = {
       const kept = hints.filter((h) => !fromAi.some((x) => x.skill === h.skill) && !rejected.has(h.skill)).map((h) => ({ ...h, by: 'keywords' }));
       found = [...fromAi, ...kept];
       ack = typeof d.ack === 'string' && d.ack.trim() ? d.ack.trim().slice(0, 240) : null;
+      // No empty praise: if the AI only flattered, say plainly what was found instead.
+      if (ack && PRAISE.test(ack)) ack = null;
       const p = d.profile || {}, pr = d.prefs || {};
       merge(cf.profile, { age: num(p.age), gapYears: num(p.gapYears), education: ['degree', 'none'].includes(p.education) ? p.education : null,
         needsAccommodation: p.needsAccommodation === true ? true : null });
       merge(cf.prefs, { type: ['full-time', 'part-time', 'remote'].includes(pr.type) ? pr.type : null, location: typeof pr.location === 'string' ? pr.location : null });
       question = typeof d.question === 'string' && d.question.trim() ? d.question.trim().slice(0, 300) : null;
+      // Keep the AI to clean sentences: cut anything after the last sentence end (it sometimes adds stray words),
+      // and answer in the person's language: an English message never gets a Hinglish reply.
+      const tidy = (t, end) => { if (!t) return t; const i = Math.max(...end.map((c) => t.lastIndexOf(c))); return i > 0 ? t.slice(0, i + 1) : t; };
+      question = tidy(question, ['?', '।']);
+      ack = tidy(ack, ['.', '!', '?', '।']);
+      const english = !/[\u0900-\u097F]/.test(text) && !HINGLISH.test(text);
+      if (english && HINGLISH.test(`${ack || ''} ${question || ''}`)) { ack = null; question = null; }
     } else {
       found = hints.map((h) => ({ ...h, by: 'keywords' }));
     }
@@ -147,9 +159,11 @@ module.exports = {
       if (i > 0) { question = isHindi(text) ? QUESTIONS[i].hi : QUESTIONS[i].q; cf.asked = [...asked(cf), i].join(','); }
     }
 
-    // No card while there is nothing to show yet.
-    const card = cf.skills.length ? { type: 'skills', skills: explainSkills(cf.skills.map((s) => ({ ...s, isNew: fresh.some((f) => f.skill === s.skill) })), cat),
-      jobsOpened: jobsOpened(cf.skills, cat), totalJobs: cat.roles.length, source: res ? 'ai' : 'keywords', provider: res?.provider, model: res?.model } : null;
+    // No card while there is nothing to show yet. Counts use SkillSetu's own catalog (SAP jobs are counted by the Market agent).
+    const sapJob = (id) => String(id || '').startsWith('5a900000-5a90-');
+    const base = { ...cat, roles: cat.roles.filter((r) => !sapJob(r.ID)), roleSkills: cat.roleSkills.filter((rs) => !sapJob(rs.role_ID)) };
+    const card = cf.skills.length ? { type: 'skills', skills: explainSkills(cf.skills.map((s) => ({ ...s, isNew: fresh.some((f) => f.skill === s.skill) })), base),
+      jobsOpened: jobsOpened(cf.skills, base), totalJobs: base.roles.length, source: res ? 'ai' : 'keywords', provider: res?.provider, model: res?.model } : null;
     const lead = ack || (fresh.length ? say.found(fresh.length, fresh.map((f) => label(f.skill)).join(', '))
       : cf.skills.length ? say.none : say.first);
 

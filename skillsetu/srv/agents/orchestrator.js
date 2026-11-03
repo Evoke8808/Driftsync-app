@@ -3,7 +3,7 @@
 // anything unclear goes to the AI router.  3. Run the agents.  4. Save the case, the chat and an audit trail.
 const cds = require('@sap/cds');
 const ai = require('../ai');
-const { db, catalog, parse, caseCode, personBarriers } = require('./lib');
+const { db, catalog, parse, caseCode, personBarriers, roleInText } = require('./lib');
 const { emit } = require('../integrations/webhooks');
 
 const AGENTS = [
@@ -40,10 +40,16 @@ const REQUEST = /\?|^(show|find|give|what|which|how|can|could|tell me|i want|i n
 
 const LOG = cds.log('orchestrator');
 
-async function decide(cf, message, intent) {
+// "My target role is data entry specialist", "I want to become an event planner": a job the person names as their goal.
+const TARGET = /\b(target|goal|aim|want|wanna|would like|i'?d like|like to|interested|become|dream|prefer|apply for|looking for|switch to|planning to be)\b|बनना|बनूँ|चाहता|चाहती|banna|banana hai/i;
+const NOT_TARGET = /\bwhy\b|reject|not selected|didn[’']?t get|safe|risk|replace/i;
+
+async function decide(cf, message, intent, cat) {
   const needsSkills = ['market', 'pathway', 'matching', 'readiness', 'explain', 'shield', 'growth'];
   if (intent && BY_ID[intent] && !(needsSkills.includes(intent) && !cf.skills.length)) return { agents: [intent], by: 'button', reason: `Button pressed: ${BY_ID[intent].name}` };
   if (!cf.skills.length) return { agents: ['skills'], by: 'rules', reason: 'No skills on file yet, so Skills Discovery goes first' };
+  const named = cat && message && TARGET.test(message) && !NOT_TARGET.test(message) && roleInText(message, cat);
+  if (named) return { agents: ['pathway'], by: 'rules', roleID: named.ID, reason: `You named your target job: ${named.title}, so Learning Pathway plans for it` };
 
   let hits = RULES.filter(([, re]) => re.test(message)).map(([id]) => id);
   // A complaint about the AI always reaches a person, even in the middle of the interview.
@@ -120,7 +126,8 @@ async function handle({ caseID, message, intent, roleID, name, force, forceReaso
   const chat = [], audit = [], trace = [];
   if (text) chat.push({ role: 'user', agent: null, text, card: null });
 
-  const route = force && BY_ID[force] ? { agents: [force], by: forceReason ? 'button' : 'api', reason: forceReason || `Integration API call: ${BY_ID[force].name}` } : await decide(cf, intent ? '' : text, intent);
+  let route;
+  route = force && BY_ID[force] ? { agents: [force], by: forceReason ? 'button' : 'api', reason: forceReason || `Integration API call: ${BY_ID[force].name}` } : await decide(cf, intent ? '' : text, intent, cat);
   const snapshot = () => JSON.stringify([cf.skills.map((s) => s.skill).sort(), cf.plan?.roleID, cf.plan?.steps?.length]);
   const before = snapshot();
   trace.push({ agent: 'orchestrator', name: 'Setu', icon: '🌉', routedBy: route.by, reason: route.reason,
@@ -133,7 +140,7 @@ async function handle({ caseID, message, intent, roleID, name, force, forceReaso
     let out;
     const aiInfo = {};   // the agent's AI call reports here why it fell back to rules
     try {
-      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID, extra, log: cds.log('agent:' + id), aiInfo });
+      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID: roleID || route.roleID, extra, log: cds.log('agent:' + id), aiInfo });
     } catch (e) {
       LOG.error(`${agent.name} failed`, e);
       out = { replies: [{ text: `${agent.name} hit a problem, so I skipped it. Try again in a moment.` }], note: 'error: ' + e.message };
