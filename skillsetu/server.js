@@ -5,6 +5,12 @@ const express = require('express');
 const cds = require('@sap/cds');
 
 cds.on('bootstrap', (app) => {
+  // SkillSetu has its own sign-in page. Never send the browser's built-in login box (WWW-Authenticate) on a 401.
+  app.use((req, res, next) => {
+    const set = res.setHeader.bind(res);
+    res.setHeader = (k, v) => (String(k).toLowerCase() === 'www-authenticate' ? res : set(k, v));
+    next();
+  });
   // Compress text responses (the SAP UI5 bundle shrinks from 1.2 MB to about 300 KB). MCP streams are left alone.
   try {
     const compression = require('compression');

@@ -14,7 +14,12 @@
     if (api && a?.token) opts = { ...opts, headers: { ...(opts.headers || {}), 'X-SkillSetu-Token': a.token } };
     return plainFetch(url, opts).then((res) => {
       // An expired session: forget it so the app asks the person to sign in again.
-      if (api && a?.token && res.status === 401) window.ssAuth.clear();
+      if (api && a?.token && res.status === 401) {
+        window.ssAuth.clear();
+        // Back to the right sign-in page, once.
+        const to = a.role === 'counsellor' ? '#/counsellor-login' : '#/login';
+        if (location.hash !== to) setTimeout(() => { location.hash = to; }, 0);
+      }
       return res;
     });
   };
