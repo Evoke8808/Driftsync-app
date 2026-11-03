@@ -1000,7 +1000,7 @@ function loginPage(portal) {
   document.getElementById('lgGo').addEventListener('click', go);
   document.getElementById('loginForm').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
   document.getElementById('lgMode').addEventListener('click', () => { loginState.mode = signup ? 'signin' : 'signup'; loginPage(portal); });
-  document.getElementById('lgGuest')?.addEventListener('click', () => { startSession({ guest: true }); location.hash = '#/journey'; });
+  document.getElementById('lgGuest')?.addEventListener('click', () => { startSession({ guest: true }); location.hash = '#/'; });
   setTimeout(() => document.getElementById(signup ? 'lgName' : 'lgUser')?.focus(), 50);
 }
 
@@ -1027,7 +1027,7 @@ async function submitLogin(portal) {
     startSession(acc);
     loginState.mode = 'signin';
     toast(signup ? `Welcome, ${acc.displayName}! Your account is ready.` : `Signed in as ${acc.displayName}`);
-    location.hash = acc.role === 'counsellor' ? '#/overview' : '#/journey';
+    location.hash = acc.role === 'counsellor' ? '#/overview' : '#/';
   } catch (e) { fail('Could not reach the server. Is cds watch running?'); }
   finally { btn.disabled = false; }
 }
@@ -1063,6 +1063,7 @@ function updateChrome() {
   const sb = document.getElementById('shellbar');
   if (sb) sb.setAttribute('secondary-title', counsellor ? 'Counsellor workspace' : 'Skills-first hiring on SAP BTP');
   document.body.classList.toggle('is-counsellor', counsellor);
+  document.body.classList.toggle('signed-out', !a);
   const av = document.getElementById('meAvatar');
   if (av) {
     if (a?.displayName) { av.setAttribute('initials', initials(a.displayName).slice(0, 2)); av.removeAttribute('icon'); }
@@ -1099,6 +1100,8 @@ function route() {
   window.scrollTo({ top: 0 });
   const a = ssAuth.get();
   updateChrome();
+  // Sign in first: until someone signs in (or picks guest mode), every page leads to the sign-in screen.
+  if (!a && r !== 'login' && r !== 'counsellor-login') { location.replace('#/login'); return; }
   if (r === 'login' || r === 'counsellor-login') {
     if (r === 'login' && a?.role === 'counsellor') loginState.mode = 'signin';
     return loginPage(r === 'login' ? 'user' : 'counsellor');
