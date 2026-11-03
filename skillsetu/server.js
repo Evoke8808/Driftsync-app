@@ -12,14 +12,12 @@ cds.on('bootstrap', (app) => {
   } catch (e) { cds.log('server').warn('Compression is off (run "npm install"):', e.message); }
 
   // Static files: the UI5 bundle and fonts never change, so browsers keep them for 30 days.
-  // The page itself is always checked, and app.js / styles.css are reused for 10 minutes.
+  // Our own files (page, app.js, styles.css) are always re-checked, so a redeploy shows up at once;
+  // unchanged files come back as a tiny "not modified" answer.
   const dir = path.join(__dirname, 'app');
   app.use('/vendor', express.static(path.join(dir, 'vendor'), { maxAge: '30d', immutable: true }));
   app.use('/fonts', express.static(path.join(dir, 'fonts'), { maxAge: '30d', immutable: true }));
-  app.use(express.static(dir, {
-    maxAge: '10m',
-    setHeaders: (res, file) => { if (file.endsWith('.html')) res.setHeader('Cache-Control', 'no-cache'); }
-  }));
+  app.use(express.static(dir, { setHeaders: (res) => res.setHeader('Cache-Control', 'no-cache') }));
 
   try { require('./mcp/http').mount(app); }
   catch (e) { cds.log('mcp').warn('MCP endpoint is off (run "npm install" to turn it on):', e.message); }

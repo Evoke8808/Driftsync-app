@@ -984,5 +984,6 @@ table.data th { font: 700 13px var(--display); text-transform: none; letter-spac
 @media (max-width: 900px) { .ov-kpis { grid-template-columns: repeat(2, 1fr); } .ov-grid, .ov-links { grid-template-columns: 1fr; } }
 body.is-counsellor .tabs a[data-route="jobs"] { order: 9; }
 
-/* Before sign-in only the sign-in screen shows: no tabs. */
-body.signed-out #navLinks { display: none; }
+/* Before sign-in only the sign-in screen shows: no top bar or tabs. */
+body.signed-out header.shell { display: none; }
+body.signed-out .login-page { padding-top: 48px; }
