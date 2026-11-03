@@ -1159,3 +1159,12 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .sk-more { padding: 0 12px 10px; display: grid; gap: 6px; font-size: var(--sapFontSize); }
 .mil-term { color: var(--sapContent_LabelColor); font-weight: 600; }
 .mil-to-ic { color: var(--sapContent_IconColor); }
+
+/* One-click demo accounts on the sign-in page */
+.demo-box { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--sapList_BorderColor); display: grid; gap: 8px; }
+.demo-list { display: grid; gap: 6px; }
+.demo-acc { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; padding: 8px 12px; border-radius: var(--sapButton_BorderCornerRadius);
+  border: 1px solid var(--sapButton_BorderColor); background: var(--sapButton_Background); color: var(--sapTextColor); font: inherit; cursor: pointer; }
+.demo-acc:hover { background: var(--sapButton_Hover_Background); }
+.demo-acc b { display: block; font-size: var(--sapFontSize); }
+.demo-acc small { color: var(--sapContent_LabelColor); font-size: var(--sapFontSmallSize, 12px); }

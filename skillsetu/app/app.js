@@ -1047,6 +1047,35 @@ function loginPicture(portal) {
 
 const loginState = { mode: 'signin' };
 
+// One-click demo sign-in: the job seekers start their story in My Journey, the counsellors open their overview.
+const DEMO_PASS = 'skillsetu123';
+const DEMO_USERS = {
+  user: [
+    { username: 'priya', name: 'Priya Sharma', tag: 'Back after a 6-year career break', story: () => PERSONAS[0].story },
+    { username: 'vikram', name: 'Vikram Singh', tag: 'Ex-Army Havildar, 22 years', story: () => VIKRAM },
+    { username: 'meena', name: 'Meena Reddy', tag: 'Customer service, job at risk from AI', story: () => MEENA }
+  ],
+  counsellor: [
+    { username: 'meera.ccp', name: 'Meera Iyer', tag: 'Counsellor' },
+    { username: 'anita.ccp', name: 'Anita Rao', tag: 'Counsellor' }
+  ]
+};
+async function demoLogin(portal, username) {
+  const d = DEMO_USERS[portal].find((x) => x.username === username);
+  try {
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username, secret: DEMO_PASS, portal }) });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error?.message || 'Sign-in failed');
+    const acc = JSON.parse(body.value);
+    startSession(acc);
+    toast(`Signed in as ${acc.displayName}`);
+    if (acc.role === 'counsellor') { location.hash = '#/overview'; return; }
+    resetChat(); chat.name = d.name.split(' ')[0];
+    chat.pending = { name: chat.name, message: d.story() };
+    location.hash = '#/journey';
+  } catch (e) { toast('Could not sign in to the demo account just now. Please try again.'); }
+}
+
 function loginPage(portal) {
   const L = LOGIN[portal], signup = loginState.mode === 'signup', a = ssAuth.get();
   view.innerHTML = `<div class="page login-page ${portal}"><div class="login-wrap">
@@ -1073,6 +1102,10 @@ function loginPage(portal) {
       <p class="login-switch">${signup ? 'Already have an account?' : portal === 'counsellor' ? 'New counsellor?' : 'New to SkillSetu?'}
         <ui5-link id="lgMode">${signup ? 'Sign in' : 'Create an account'}</ui5-link></p>
       ${portal === 'user' && !signup ? '<div class="login-or"><span>or</span></div><ui5-button design="Transparent" id="lgGuest" class="login-go">Continue as a guest</ui5-button>' : ''}
+      ${signup ? '' : `<div class="demo-box"><span class="st-k">Demo accounts · one click</span>
+        <div class="demo-list">${DEMO_USERS[portal].map((d) => `<button class="demo-acc" data-demo="${d.username}" type="button">
+          <ui5-avatar size="XS" initials="${esc(d.name.split(' ').map((w) => w[0]).join(''))}" color-scheme="Accent6"></ui5-avatar>
+          <span><b>${esc(d.name)}</b><small>${esc(d.tag)}</small></span></button>`).join('')}</div></div>`}
       <p class="login-other">${L.other[0]} <a href="${L.other[1]}">${L.other[2]}</a></p>
     </section>
   </div></div>`;
@@ -1080,6 +1113,7 @@ function loginPage(portal) {
   document.getElementById('lgGo').addEventListener('click', go);
   document.getElementById('loginForm').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); go(); } });
   document.getElementById('lgMode').addEventListener('click', () => { loginState.mode = signup ? 'signin' : 'signup'; loginPage(portal); });
+  document.querySelectorAll('[data-demo]').forEach((b) => b.addEventListener('click', () => demoLogin(portal, b.dataset.demo)));
   document.getElementById('lgGuest')?.addEventListener('click', () => { startSession({ guest: true }); location.hash = '#/'; });
   setTimeout(() => document.getElementById(signup ? 'lgName' : 'lgUser')?.focus(), 50);
   animateRings();

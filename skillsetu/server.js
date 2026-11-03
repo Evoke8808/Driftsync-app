@@ -25,6 +25,7 @@ cds.on('bootstrap', (app) => {
 // Services added after the database was first set up (e.g. the Fiori counsellor service) need their views.
 // Create any view that is missing, without touching tables or data.
 cds.once('served', async () => {
+  try { await require('./srv/demo-accounts').ensure(); } catch (e) { cds.log('demo').warn('Could not create demo accounts:', e.message); }
   try {
     const db = await cds.connect.to('db');
     const dialect = /hana/.test(db.options?.kind || db.kind || '') ? 'hana' : 'sqlite';
