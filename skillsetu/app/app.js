@@ -569,7 +569,7 @@ function drawCase() {
     <div class="kv"><span>Wants</span><b>${esc([c.prefs?.type && label(c.prefs.type), c.prefs?.remote && c.prefs?.type !== 'remote' && 'Remote', c.prefs?.location].filter(Boolean).join(' · ') || '—')}</b></div>
     ${private_.length ? `<div class="kv"><span>${ic('lock', 14)} Private</span><div><div class="row">${private_.map((x) => `<span class="chip sm">${esc(x)}</span>`).join('')}</div>
       <div class="fine" style="margin-top:4px">Used only to check for bias. Never shown to employers.</div></div></div>` : ''}
-    <div class="row between" style="margin-top:12px"><a class="link-btn" href="#/counsellor">Counsellor view</a><button class="link-btn" id="newChat2">New chat</button></div>`;
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="link-btn" id="newChat2">New chat</button></div>`;
 }
 
 function drawTrace() {

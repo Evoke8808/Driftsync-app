@@ -47,8 +47,8 @@ module.exports = {
     const removedText = !removed.length ? '' : hi ? ` मैंने ${gone} आपके हुनर से हटा दिया है, इसलिए नौकरियाँ और प्लान अब इसके बिना बनेंगे।` : ` I’ve removed ${gone} from your skills, so jobs and plans no longer count it.`;
     const flagged = hi ? 'मैंने यह एक काउंसलर (इंसान) को भेज दिया है। वे आपका संदेश, AI की वजह और पूरा रिकॉर्ड देखेंगे, और AI का फ़ैसला बदल सकते हैं।'
       : 'I’ve flagged this for a human counsellor. They’ll see your message, the AI’s reasoning and the full trace, and they can overrule the AI.';
-    const sent = hi ? 'मैंने आपका केस एक काउंसलर (इंसान) को भेज दिया है। किसी भी कंपनी तक कुछ भी पहुँचने से पहले वे हुनर, प्लान और निष्पक्षता रिपोर्ट जाँचेंगे।'
-      : 'I’ve sent your case to a human counsellor. They check the skills, the plan and the fairness report before anything reaches an employer.';
+    const sent = hi ? 'आपका प्लान एक काउंसलर को भेज दिया गया है। वे इसे जाँचकर आपको यहीं जवाब देंगे। शुभकामनाएँ!'
+      : 'Your plan has been sent to a counsellor. They’ll check it and reply to you right here. Good luck!';
     const noPlan = hi ? ' आपने अभी कोई प्लान नहीं बनाया है, इसलिए काउंसलर पहले सही नौकरी चुनने में मदद करेंगे।'
       : ' You don’t have a learning plan yet, so they’ll first help you pick the right job.';
     const applyText = !applyRole ? '' : hi ? ` आवेदन: ${applyRole.title} (${applyRole.company})। काउंसलर की मंज़ूरी के बाद यह SAP SuccessFactors में जाएगा, आपके नाम के बिना।`
@@ -58,7 +58,7 @@ module.exports = {
       replies: [{ text, card: { type: 'handoff', status: 'sent', dispute: dispute ? String(message).slice(0, 300) : null, removed: removed.map(label), plan: summary(cf, applyRole) } }],
       note: dispute ? (removed.length ? `dispute recorded, removed ${gone}` : 'dispute recorded') : applyRole ? `sent to counsellor to apply for ${applyRole.title}` : 'sent to counsellor',
       disputed: dispute ? String(message).slice(0, 300) : null,
-      suggestions: [{ label: 'Open the counsellor view', href: '#/counsellor' }]
+      suggestions: []
     };
   }
 };
