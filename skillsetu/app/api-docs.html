@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillSetu Integration API</title>
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Inter:wght@400;600&display=swap">
+  <style>
+    body { margin: 0; font-family: Inter, system-ui, sans-serif; background: #fffaf2; color: #1d1a3d; }
+    .top { padding: 22px 24px 18px; background: linear-gradient(120deg, #3b2fb0, #6d3fd8 55%, #ef6c1a); color: #fff; position: relative; }
+    .top::after { content: ""; position: absolute; left: 0; right: 0; bottom: -7px; height: 7px;
+      background: conic-gradient(from 135deg at 6px 0, #ef6c1a 90deg, transparent 0) 0 0 / 36px 7px repeat-x,
+        conic-gradient(from 135deg at 18px 0, #0e8a86 90deg, transparent 0) 0 0 / 36px 7px repeat-x,
+        conic-gradient(from 135deg at 30px 0, #e2366b 90deg, transparent 0) 0 0 / 36px 7px repeat-x; }
+    .top-in { max-width: 1160px; margin: 0 auto; }
+    .top a { color: #fff; opacity: .9; font-size: 14px; }
+    .top h1 { font-family: 'Baloo 2', sans-serif; font-size: 34px; margin: 6px 0 4px; }
+    .top p { margin: 0; max-width: 760px; opacity: .92; }
+    .quick { max-width: 1160px; margin: 26px auto 0; padding: 0 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+    .q { background: #fff; border: 1px solid #ecdfcb; border-radius: 16px; padding: 16px; }
+    .q b { font-family: 'Baloo 2', sans-serif; font-size: 18px; }
+    .q code, pre { font-size: 12.5px; }
+    pre { background: #1d1a3d; color: #f7f1e8; padding: 12px; border-radius: 12px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    .swagger-ui .topbar { display: none; }
+    #swagger { max-width: 1160px; margin: 0 auto; }
+    #swagger .off { margin: 22px 24px 8px; color: #6b5f4a; }
+    #swagger .ep { background: #fff; border: 1px solid #ecdfcb; border-radius: 14px; padding: 12px 16px; margin: 10px 24px; overflow-wrap: anywhere; }
+    #swagger .ep p, #swagger .ep ul { margin: 6px 0; font-size: 14px; }
+    #swagger .m { display: inline-block; min-width: 54px; text-align: center; font-weight: 700; font-size: 12px; color: #fff; border-radius: 6px; padding: 2px 6px; background: #3b2fb0; }
+    #swagger .m-post { background: #0e8a86; } #swagger .m-delete { background: #e2366b; }
+  </style>
+</head>
+<body>
+  <div class="top"><div class="top-in">
+    <a href="index.html">← SkillSetu</a>
+    <h1>Integration API v1</h1>
+    <p>Plug SkillSetu into SAP SuccessFactors, Workday, a job portal or an NGO case tool. REST + JSON, an API key, signed webhooks and an OpenAPI spec (<a href="openapi.json">openapi.json</a>).</p>
+  </div></div>
+  <div class="quick">
+    <div class="q"><b>1 · Auth</b><p>Send <code>x-api-key</code> on every call. Demo key: <code>skillsetu-demo-key</code>. Click <i>Authorize</i> below to try calls live.</p></div>
+    <div class="q"><b>2 · Try it</b><pre>curl -X POST http://localhost:4004/integration/v1/createCase \
+ -H "x-api-key: skillsetu-demo-key" -H "Content-Type: application/json" \
+ -d '{"story":"I ran a tiffin service for 6 years and kept accounts","name":"Lakshmi"}'</pre></div>
+    <div class="q"><b>3 · Flow</b><p>createCase → getMatches / getLearningPlan / getReadiness → submitForReview → counsellor approves → webhook <code>case.approved</code> → pushToSuccessFactors.</p></div>
+    <div class="q"><b>4 · MCP for AI assistants</b><p>Any assistant that speaks MCP (Claude, ChatGPT, SAP Joule) can onboard a person: tools <code>onboard_person</code>, <code>add_to_story</code>, <code>find_jobs</code>, <code>make_learning_plan</code>, <code>check_filter_barriers</code>, <code>send_to_counsellor</code>, <code>get_case</code>.</p>
+      <p>Web: <code>POST /mcp</code> with the same <code>x-api-key</code>. Claude Desktop: run <code>mcp/stdio.js</code>.</p></div>
+  </div>
+  <div id="swagger"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+  <script>
+    if (window.SwaggerUIBundle) {
+      window.ui = SwaggerUIBundle({ url: 'openapi.json', dom_id: '#swagger', deepLinking: true, persistAuthorization: true, tryItOutEnabled: true });
+    } else {
+      // Offline fallback: no CDN, so list the endpoints straight from openapi.json
+      const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      fetch('openapi.json').then(r => r.json()).then(spec => {
+        const base = (spec.servers && spec.servers[0] && spec.servers[0].url) || '/integration/v1';
+        let html = '<p class="off">Showing the built-in endpoint list (the interactive Swagger viewer needs internet).</p>';
+        for (const [path, ops] of Object.entries(spec.paths || {})) {
+          for (const [m, op] of Object.entries(ops)) {
+            const params = (op.parameters || []).map(p => `<li><code>${esc(p.name)}</code> (${esc(p.in)}${p.required ? ', required' : ''}) ${esc(p.description)}</li>`).join('');
+            const body = op.requestBody?.content?.['application/json']?.schema;
+            const props = body?.properties ? Object.keys(body.properties).map(k => `<code>${esc(k)}</code>`).join(', ') : '';
+            html += `<div class="ep"><div><span class="m m-${m}">${m.toUpperCase()}</span> <code>${esc(base + path)}</code></div>
+              <b>${esc(op.summary)}</b>${op.description ? `<p>${esc(op.description)}</p>` : ''}
+              ${params ? `<ul>${params}</ul>` : ''}${props ? `<p>JSON body: ${props}</p>` : ''}</div>`;
+          }
+        }
+        document.getElementById('swagger').innerHTML = html;
+      }).catch(() => { document.getElementById('swagger').innerHTML = '<p class="off">Could not load openapi.json.</p>'; });
+    }
+  </script>
+</body>
+</html>

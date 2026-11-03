@@ -1,0 +1,9 @@
+node_modules/
+db.sqlite
+db.sqlite-*
+aicore-key.json
+gemini-key.json
+.env
+ai-debug.log
+sap-key.json
+mcp/sap/last-sync.json

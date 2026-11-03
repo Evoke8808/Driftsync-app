@@ -1,0 +1,13 @@
+ID;title;provider;url;duration;skill_ID;level
+4a2b3c4d-0001-0001-0001-000000000001;Financial Planning Basics;SAP Learning Hub;https://learning.sap.com/search?query=Financial%20Planning%20Basics;2 hours;1a2b3c4d-0001-0001-0001-000000000001;beginner
+4a2b3c4d-0001-0001-0001-000000000002;Time and Schedule Management;SWAYAM;https://swayam.gov.in/explorer?searchText=Time%20and%20Schedule%20Management;4 hours;1a2b3c4d-0001-0001-0001-000000000002;beginner
+4a2b3c4d-0001-0001-0001-000000000003;Event Management Fundamentals;NPTEL;https://nptel.ac.in/courses;8 hours;1a2b3c4d-0001-0001-0001-000000000003;beginner
+4a2b3c4d-0001-0001-0001-000000000004;Negotiation Skills;SAP Learning Hub;https://learning.sap.com/search?query=Negotiation%20Skills;3 hours;1a2b3c4d-0001-0001-0001-000000000004;intermediate
+4a2b3c4d-0001-0001-0001-000000000005;Leadership Essentials;SAP Learning Hub;https://learning.sap.com/search?query=Leadership%20Essentials;6 hours;1a2b3c4d-0001-0001-0001-000000000005;beginner
+4a2b3c4d-0001-0001-0001-000000000006;Excel for Business;SWAYAM;https://swayam.gov.in/explorer?searchText=Excel%20for%20Business;10 hours;1a2b3c4d-0001-0001-0001-000000000006;beginner
+4a2b3c4d-0001-0001-0001-000000000007;Customer Service Excellence;NPTEL;https://nptel.ac.in/courses;4 hours;1a2b3c4d-0001-0001-0001-000000000007;beginner
+4a2b3c4d-0001-0001-0001-000000000008;Business Communication;SAP Learning Hub;https://learning.sap.com/search?query=Business%20Communication;5 hours;1a2b3c4d-0001-0001-0001-000000000008;beginner
+4a2b3c4d-0001-0001-0001-000000000009;Critical Thinking and Problem Solving;SWAYAM;https://swayam.gov.in/explorer?searchText=Critical%20Thinking%20and%20Problem%20Solving;6 hours;1a2b3c4d-0001-0001-0001-000000000009;intermediate
+4a2b3c4d-0001-0001-0001-000000000010;Data Entry and Management;NPTEL;https://nptel.ac.in/courses;3 hours;1a2b3c4d-0001-0001-0001-000000000010;beginner
+4a2b3c4d-0001-0001-0001-000000000011;Project Management Fundamentals;SAP Learning Hub;https://learning.sap.com/search?query=Project%20Management%20Fundamentals;8 hours;1a2b3c4d-0001-0001-0001-000000000011;beginner
+4a2b3c4d-0001-0001-0001-000000000012;Time Management Mastery;SWAYAM;https://swayam.gov.in/explorer?searchText=Time%20Management%20Mastery;4 hours;1a2b3c4d-0001-0001-0001-000000000012;beginner

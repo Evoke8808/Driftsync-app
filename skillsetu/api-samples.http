@@ -1,0 +1,49 @@
+### SkillSetu Integration API samples (VS Code / BAS "REST Client": click "Send Request" above each call)
+@host = http://localhost:4004/integration/v1
+@key = skillsetu-demo-key
+
+### 1. Create a case from a story (copy the caseID from the answer into @case below)
+POST {{host}}/createCase
+x-api-key: {{key}}
+Content-Type: application/json
+
+{ "story": "मैं 12 साल से गाँव में स्वयं सहायता समूह चला रही हूँ। हर महीने मीटिंग बुलाती हूँ और बचत का हिसाब रखती हूँ।", "name": "Sunita", "externalRef": "NGO-4411", "district": "Jaipur" }
+
+###
+@case = PASTE-CASE-ID-HERE
+
+### 2. Job matches (part-time only)
+GET {{host}}/getMatches?caseID={{case}}&partTime=true
+x-api-key: {{key}}
+
+### 3. Learning plan
+GET {{host}}/getLearningPlan?caseID={{case}}
+x-api-key: {{key}}
+
+### 4. Bias & readiness report
+GET {{host}}/getReadiness?caseID={{case}}
+x-api-key: {{key}}
+
+### 5. Send to a counsellor (then approve it on the Counsellor page)
+POST {{host}}/submitForReview
+x-api-key: {{key}}
+Content-Type: application/json
+
+{ "caseID": "{{case}}" }
+
+### 6. After approval: hand over to SAP SuccessFactors
+POST {{host}}/pushToSuccessFactors
+x-api-key: {{key}}
+Content-Type: application/json
+
+{ "caseID": "{{case}}" }
+
+### 7. See what "SuccessFactors" received (demo mock)
+GET http://localhost:4004/sf-mock/JobApplication
+
+### 8. Register a webhook (use https://webhook.site to get a test URL)
+POST {{host}}/registerWebhook
+x-api-key: {{key}}
+Content-Type: application/json
+
+{ "url": "https://webhook.site/your-id", "events": ["case.approved", "case.pushed"] }

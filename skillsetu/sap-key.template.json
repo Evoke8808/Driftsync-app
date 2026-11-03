@@ -1,0 +1,6 @@
+{
+  "_help": "Copy this file to sap-key.json and fill in what you have. Leave a value empty to skip that source. See mcp/sap/README.md.",
+  "apiKey": "",
+  "prefer": "successfactors",
+  "hana": { "host": "", "port": 443, "user": "", "password": "", "schema": "HACKFEST0266" }
+}

@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillSetu · हुनर का सेतु</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700;9..144,900&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600;700&family=Mukta:wght@400;600;700&display=swap">
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try { document.documentElement.dataset.theme = localStorage.getItem('ss-theme') || 'light'; } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a href="#/" class="brand">
+        <span class="brand-mark"><svg viewBox="0 0 38 38" width="38" height="38" aria-hidden="true"><rect x="1" y="1" width="36" height="36" rx="5" fill="#1f4e3d" stroke="#1d1b2e" stroke-width="2"/><path d="M6 25h26" stroke="#f3ead6" stroke-width="2.4" stroke-linecap="round"/><path d="M9 25c2.8-9 17.2-9 20 0" fill="none" stroke="#f2a516" stroke-width="2.8" stroke-linecap="round"/><path d="M14 19.6V25M19 18v7M24 19.6V25" stroke="#f3ead6" stroke-width="1.6" stroke-linecap="round"/><circle cx="19" cy="11" r="2.6" fill="#d9381e"/></svg></span>
+        <span class="brand-word"><span>Skill<b>Setu</b></span><small>skills passport</small></span>
+      </a>
+      <nav class="nav-links" id="navLinks">
+        <a href="#/" data-route="home">Home</a>
+        <a href="#/journey" data-route="journey">My Journey</a>
+        <a href="#/jobs" data-route="jobs">Jobs</a>
+        <a href="#/courses" data-route="courses">Courses</a>
+        <a href="#/counsellor" data-route="counsellor">Counsellor</a>
+        <a href="#/impact" data-route="impact">Impact</a>
+        <a href="#/about" data-route="about">About</a>
+      </nav>
+      <div class="nav-actions">
+        <button class="icon-btn" id="settingsBtn" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">
+          <svg class="i-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          <svg class="i-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <button class="icon-btn show-sm" id="menuToggle" aria-label="Menu">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>SkillSetu · Up Down Coders · SAP Hackfest 2026</span>
+      <span class="muted">Built on SAP CAP · HANA Cloud · Generative AI Hub · <a href="../api-docs.html" style="text-decoration:underline">Integration API</a></span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="../auth-header.js"></script>
+  <script src="app.js"></script>
+  <script src="../settings.js"></script>
+</body>
+</html>
