@@ -1066,7 +1066,7 @@ function updateChrome() {
   if (av) {
     if (a?.displayName) { av.setAttribute('initials', initials(a.displayName).slice(0, 2)); av.removeAttribute('icon'); }
     else { av.removeAttribute('initials'); av.setAttribute('icon', 'person-placeholder'); }
-    av.setAttribute('color-scheme', counsellor ? 'Accent10' : 'Accent6');
+    av.setAttribute('color-scheme', 'Accent6');
   }
 }
 

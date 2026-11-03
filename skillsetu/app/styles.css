@@ -964,12 +964,7 @@ table.data th { font: 700 13px var(--display); text-transform: none; letter-spac
 .sap-jobs { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
 .sap-jobs .mrole { margin-top: 8px; }
 
-/* ---------- Counsellor workspace: its own colour and an overview page ---------- */
-body.is-counsellor .tabs { border-top: 3px solid #5b4a3a; }
-body.is-counsellor .tabs a.active { color: #5b4a3a; }
-body.is-counsellor .tabs a.active::after { background: #5b4a3a; }
-html[data-theme="dark"] body.is-counsellor .tabs a.active { color: #e0c9a6; }
-html[data-theme="dark"] body.is-counsellor .tabs a.active::after { background: #e0c9a6; }
+/* ---------- Counsellor workspace: overview page ---------- */
 .ov-kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
 .ov-kpi { text-align: left; padding: 16px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface); color: inherit; font: inherit; cursor: pointer; }
 .ov-kpi:hover { border-color: var(--sapSelectedColor, #0064d9); }
