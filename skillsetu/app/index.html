@@ -10,9 +10,7 @@
   <script>
     try {
       document.documentElement.dataset.theme = localStorage.getItem('ss-theme') || 'light';
-      // Open the look chosen in Settings (Fiori lives here, the others in their own folders).
-      const look = localStorage.getItem('ss-look');
-      if (look === 'passport' || look === 'original') location.replace(look + '/' + location.hash);
+      localStorage.removeItem('ss-look');   // only the SAP Fiori look is left
     } catch (e) {}
   </script>
   <!-- SAP UI5 Web Components (Horizon theme), bundled locally in vendor/ -->

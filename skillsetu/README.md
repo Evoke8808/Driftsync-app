@@ -84,7 +84,7 @@ HTTP endpoints need the header `x-api-key: skillsetu-demo-key`. There is also a 
 ## Project layout
 
 ```
-app/            web app (Fiori, Passport and Original looks)
+app/            web app (SAP Fiori look, UI5 Web Components)
 srv/agents/     the nine agents and the orchestrator
 srv/integrations/  SuccessFactors connector, SAP MCP client, webhooks
 mcp/            MCP servers (SkillSetu and SAP company data)
