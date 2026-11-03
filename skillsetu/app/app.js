@@ -549,6 +549,52 @@ function drawTrace() {
 /* ---------- Counsellor view (Human-in-the-Loop) ---------- */
 const desk = { cases: [], id: null, view: null };
 
+/* ---------- Counsellor overview: the counsellor's home page ---------- */
+async function overview() {
+  const me = ssAuth.get();
+  view.innerHTML = `<div class="page"><div class="container">
+    <div class="page-head"><div class="row between"><h1>Good to see you, ${esc((me?.displayName || '').replace(/\s*\(.*\)$/, '') || 'counsellor')}</h1>
+      <span class="signed-as">${ic('employee', 16)} Counsellor · ${esc(me?.username || '')}</span></div>
+      <p>Your queue at a glance: who is waiting for a review, what you approved, and which applications went to SAP SuccessFactors.</p></div>
+    <div id="ovBody"><div class="skeleton" style="height:320px"></div></div></div></div>`;
+  let cases = [], pushes = [];
+  try {
+    [cases, pushes] = await Promise.all([
+      fetch('/api/cases()').then((r) => r.json()).then((b) => JSON.parse(b.value)),
+      fetch('/api/sfPushes()').then((r) => r.json()).then((b) => JSON.parse(b.value)).catch(() => [])
+    ]);
+  } catch (e) { document.getElementById('ovBody').innerHTML = '<div class="empty">Could not load your cases. Try again in a moment.</div>'; return; }
+  const n = (st) => cases.filter((c) => c.status === st).length;
+  const sent = pushes.filter((p) => p.status === 'sent');
+  const waiting = cases.filter((c) => c.status === 'sent' || c.status === 'changes');
+  const byId = Object.fromEntries(cases.map((c) => [c.ID, c]));
+  const when = (d) => (d ? new Date(d).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+  document.getElementById('ovBody').innerHTML = `
+    <div class="ov-kpis">
+      ${[[n('sent'), 'Waiting for your review', 'warn', '#/counsellor'], [n('changes'), 'Changes requested', '', '#/counsellor'], [n('approved'), 'Approved', 'good', '#/counsellor'],
+        [sent.length, 'Sent to SAP SuccessFactors', 'sap', '#/counsellor'], [cases.length, 'All cases', '', '#/counsellor']]
+        .map(([v, l, k, h]) => `<button class="ov-kpi ${k}" data-href="${h}"><b>${v}</b><span>${l}</span></button>`).join('')}
+    </div>
+    <div class="ov-grid">
+      <section class="side-card"><div class="row between"><h4>Needs your review</h4><a class="link-btn" href="#/counsellor">Open review queue →</a></div>
+        ${waiting.length ? waiting.slice(0, 8).map((c) => `<button class="case-row" data-open-case="${esc(c.ID)}"><b>${esc(c.name || 'Guest')}<small>${esc(c.code)}</small></b>
+          <span class="pill ${c.status === 'sent' ? 'warn' : ''}">${esc(STATUS_TEXT[c.status] || c.status)}</span>
+          <span class="muted">${c.skills} skills${c.role ? ' · ' + esc(c.role) : ''} · ${when(c.modifiedAt)}</span></button>`).join('')
+          : '<div class="empty" style="padding:18px">Nothing waiting. New cases appear here when a job seeker asks for a review.</div>'}
+      </section>
+      <section class="side-card"><div class="row between"><h4>Sent to SAP SuccessFactors</h4><span class="badge">SAP SuccessFactors</span></div>
+        ${pushes.length ? pushes.slice(0, 8).map((p) => `<div class="ov-push"><span class="pill ${p.status === 'sent' ? 'good' : 'bad'}">${p.status === 'sent' ? 'Sent' : 'Failed'}</span>
+          <span><b>${esc(byId[p.caseFile_ID]?.code || p.candidateId || '')}</b> · ${esc(p.message || '')}<br><small class="muted">Req ${esc(p.jobReqId || '')} · ${esc(p.applicationId || '')} · ${when(p.createdAt)}</small></span></div>`).join('')
+          : '<div class="empty" style="padding:18px">No applications yet. Approve a case, then use “Send to SuccessFactors” in the review queue.</div>'}
+      </section>
+    </div>
+    <div class="ov-links">
+      <button class="ov-link" data-href="#/counsellor">${ic('employee-approvals', 20)}<b>Review queue</b><span>Skills with evidence, plan, fairness check, AI trace</span></button>
+      <button class="ov-link" data-href="#/impact">${ic('chart', 20)}<b>Impact</b><span>People helped and fairness, district by district</span></button>
+      <button class="ov-link" data-href="#/jobs">${ic('suitcase', 20)}<b>Jobs</b><span>The role catalog, including open SAP jobs</span></button>
+    </div>`;
+}
+
 async function counsellor() {
   view.innerHTML = `<div class="page"><div class="container">
     <div class="page-head"><div class="row between"><h1>Counsellor desk</h1><span class="signed-as">${ic('employee', 16)} ${esc(ssAuth.get()?.displayName || '')} · ${esc(ssAuth.get()?.username || '')}</span></div>
@@ -565,7 +611,7 @@ async function counsellor() {
   desk.id = desk.id && desk.cases.some((c) => c.ID === desk.id) ? desk.id : desk.cases[0]?.ID;
   drawDeskList();
   if (desk.id) openCase(desk.id);
-  else document.getElementById('caseDetail').innerHTML = '<div class="side-card empty">No cases yet. Start a chat in <a href="#/journey">My Journey</a>.</div>';
+  else document.getElementById('caseDetail').innerHTML = '<div class="side-card empty">No cases yet. They appear here when a job seeker starts a chat.</div>';
 }
 
 function drawDeskList() {
@@ -980,7 +1026,7 @@ async function submitLogin(portal) {
     startSession(acc);
     loginState.mode = 'signin';
     toast(signup ? `Welcome, ${acc.displayName}! Your account is ready.` : `Signed in as ${acc.displayName}`);
-    location.hash = acc.role === 'counsellor' ? '#/counsellor' : '#/journey';
+    location.hash = acc.role === 'counsellor' ? '#/overview' : '#/journey';
   } catch (e) { fail('Could not reach the server. Is cds watch running?'); }
   finally { btn.disabled = false; }
 }
@@ -1010,7 +1056,8 @@ async function signOut() {
 // Header and tabs follow who is signed in: counsellors get the workspace tabs, job seekers the journey.
 function updateChrome() {
   const a = ssAuth.get(), counsellor = a?.role === 'counsellor';
-  const hide = counsellor ? ['journey'] : ['counsellor', 'impact'];
+  // Two separate workspaces: counsellors never see the job seeker pages, and job seekers never see the desk.
+  const hide = counsellor ? ['home', 'journey', 'courses', 'about'] : ['overview', 'counsellor', 'impact'];
   document.querySelectorAll('#navLinks a').forEach((el) => { el.hidden = hide.includes(el.dataset.route); });
   const sb = document.getElementById('shellbar');
   if (sb) sb.setAttribute('secondary-title', counsellor ? 'Counsellor workspace' : 'Skills-first hiring on SAP BTP');
@@ -1057,9 +1104,12 @@ function route() {
   }
   // My Journey needs a job seeker account or guest mode; the desk needs a counsellor.
   if (r === 'journey' && !a) { toast('Sign in or continue as a guest to start your journey'); location.replace('#/login'); return; }
-  if (r === 'counsellor' && a?.role !== 'counsellor') { toast('The counsellor desk needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
+  if ((r === 'counsellor' || r === 'overview' || r === 'impact') && a?.role !== 'counsellor') { toast('The counsellor workspace needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
+  // Counsellors work in their own workspace: the job seeker pages send them to their overview.
+  if (a?.role === 'counsellor' && ['home', 'journey', 'courses', 'my-courses', 'about'].includes(r)) { location.replace('#/overview'); return; }
   if (r === 'journey') journey();
   else if (r === 'counsellor') counsellor();
+  else if (r === 'overview') overview();
   else if (r === 'jobs' || r === 'courses') catalog(r);
   else if (r === 'my-courses') myCoursesPage();
   else if (r === 'impact') impact();
@@ -1072,6 +1122,8 @@ view.addEventListener('click', (e) => {
   const t = e.target;
   const story = t.closest('[data-story]');
   if (story) { const p = STORIES[+story.dataset.story]; chat.pending = { name: p.name, message: p.message() }; location.hash = '#/journey'; return; }
+  const oc = t.closest('[data-open-case]');
+  if (oc) { desk.id = oc.dataset.openCase; location.hash = '#/counsellor'; return; }
   const hr = t.closest('[data-href]');
   if (hr) { const h = hr.dataset.href; if (h.startsWith('#')) location.hash = h; else location.href = h; return; }
   const persona = t.closest('[data-persona]');
