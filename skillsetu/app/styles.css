@@ -900,16 +900,14 @@ table.data th { font: 700 13px var(--display); text-transform: none; letter-spac
 
 /* ---------- Sign-in pages (job seeker and counsellor) ---------- */
 .tabs a[hidden] { display: none; }
-.login-page .login-wrap { max-width: 980px; margin: 40px auto; padding: 0 16px; display: grid; grid-template-columns: 1fr 1fr; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-lg); background: var(--surface); }
-.login-side { padding: 40px 36px; display: flex; flex-direction: column; gap: 18px; background: var(--sapInformationBackground, #e1f4ff); color: var(--text); }
-.login-side h2 { margin: 0; font-size: 26px; line-height: 1.2; }
+.login-page .login-wrap { max-width: 1180px; margin: 32px auto; display: grid; grid-template-columns: 1.35fr 1fr; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow-lg); background: var(--surface); }
+.login-side { padding: 36px 40px; display: flex; flex-direction: column; gap: 16px; background: var(--sapInformationBackground, #e1f4ff); color: var(--text); }
+.login-side h2 { margin: 0; font-size: clamp(26px, 3vw, 34px); line-height: 1.15; letter-spacing: -.01em; }
 .login-side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; }
 .login-side li { display: flex; gap: 12px; align-items: flex-start; font-size: 15px; }
 .login-side li .ico { color: var(--sapBrandColor, #0070f2); margin-top: 1px; }
 .login-logo { width: 72px; height: 36px; }
 .login-fine { margin-top: auto; font-size: 12px; opacity: .8; }
-.login-page.counsellor .login-side { background: #0a1d37; color: #fff; }
-.login-page.counsellor .login-side li .ico { color: #89d1ff; }
 .login-card { padding: 40px 36px; display: flex; flex-direction: column; gap: 10px; }
 .login-card h1 { margin: 0; font-size: 24px; }
 .login-sub { margin: 0 0 6px; color: var(--text-2); }
@@ -987,3 +985,38 @@ body.is-counsellor .tabs a[data-route="jobs"] { order: 9; }
 /* Before sign-in only the sign-in screen shows: no top bar or tabs. */
 body.signed-out header.shell { display: none; }
 body.signed-out .login-page { padding-top: 48px; }
+
+/* ---------- Sign-in page: a short showcase next to the form ---------- */
+.lp-brand { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.lp-brand b { font-size: 20px; color: var(--sapBrandColor, #0070f2); }
+.lp-brand span { font-size: 13px; color: var(--text-2); padding-left: 10px; border-left: 1px solid var(--border); }
+.lp-lead { margin: 0; color: var(--text-2); font-size: 15px; max-width: 560px; }
+.lp-pic { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 16px; display: grid; gap: 10px; box-shadow: var(--shadow); pointer-events: none; }
+.lp-bubble { display: flex; gap: 10px; align-items: flex-start; background: var(--surface-2); border-radius: 12px 12px 12px 4px; padding: 10px 12px; font-size: 14px; }
+.lp-flow { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-2); padding-left: 4px; }
+.lp-chips, .lp-acts { display: flex; flex-wrap: wrap; gap: 6px; }
+.lp-job { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 12px; }
+.lp-job b, .lp-case-h b { display: block; font-size: 15px; }
+.lp-job small, .lp-case-h small { color: var(--text-2); font-size: 12px; }
+.lp-job .lp-tag, .lp-case-h .lp-tag { margin-left: auto; }
+.lp-tag { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.lp-tag.good { background: var(--good-soft); color: var(--good); }
+.lp-tag.warn { background: var(--warn-soft); color: var(--warn); }
+.lp-case { display: grid; gap: 10px; }
+.lp-case-h { display: flex; align-items: center; gap: 10px; }
+.lp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.lp-proof { font-size: 12px; color: var(--text-2); font-style: italic; }
+.lp-fair { font-size: 12px; color: var(--text-2); background: var(--surface-2); border-radius: 8px; padding: 6px 10px; }
+.lp-btn { font-size: 12px; font-weight: 600; padding: 5px 10px; border-radius: 8px; border: 1px solid var(--sapButton_BorderColor, #bcc3ca); color: var(--sapButton_TextColor, #0064d9); }
+.lp-btn.primary { background: var(--sapButton_Emphasized_Background, #0070f2); border-color: transparent; color: #fff; }
+.lp-perks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+.lp-perks li { display: flex; gap: 10px; align-items: flex-start; }
+.lp-perks li .ico { color: var(--sapBrandColor, #0070f2); flex: none; margin-top: 2px; }
+.lp-perks b { display: block; font-size: 14px; }
+.lp-perks small { color: var(--text-2); font-size: 12.5px; }
+.lp-stat { display: flex; gap: 14px; align-items: center; margin-top: auto; padding-top: 14px; border-top: 1px solid var(--border); }
+.lp-stat > b { font-size: 34px; line-height: 1; color: var(--sapBrandColor, #0070f2); }
+.lp-stat span { font-size: 13px; }
+.lp-stat small { display: block; color: var(--text-2); font-size: 11px; margin-top: 2px; }
+@media (max-width: 900px) { .lp-perks { grid-template-columns: 1fr; } .lp-pic { display: none; } }
+.login-page { padding-left: 16px; padding-right: 16px; }

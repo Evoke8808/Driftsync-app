@@ -960,23 +960,62 @@ function impactCsv() {
 const LOGIN = {
   user: {
     title: 'Sign in to SkillSetu', sub: 'हुनर से रोज़गार तक, आपका सेतु।', userPh: 'Your username', other: ['Are you a counsellor?', '#/counsellor-login', 'Counsellor sign-in'],
-    points: [['discussion', 'Tell your story in any language'], ['suitcase', 'Get matched to jobs on skills alone'], ['private', 'Employers never see your name, age or college']]
+    eyebrow: 'Skills-first hiring on SAP BTP',
+    headline: 'Your life experience is a skill.<br>Let it get you hired.',
+    lead: 'Tell SkillSetu what you have done, at home, in your community or at work. It turns your story into skills employers understand and finds jobs that fit, on skills alone.',
+    perks: [
+      ['discussion', 'Any language', 'English, हिंदी or Hinglish. Home and unpaid work count.'],
+      ['target-group', 'Skills, not filters', 'No age, career-gap or college filters.'],
+      ['course-book', 'Free short courses', 'Close the gap with SAP Learning Hub, SWAYAM, NPTEL.'],
+      ['private', 'Your name stays private', 'Employers see a case code, until you agree.']
+    ],
+    stat: ['88%', 'of qualified people are rejected by automated résumé filters. SkillSetu was built so that never happens.', 'Harvard Business School, 2021']
   },
   counsellor: {
     title: 'Counsellor workspace', sub: 'Sign in with your counsellor username. It ends in “ccp”.', userPh: 'name.ccp', other: ['Looking for a job?', '#/login', 'Job seeker sign-in'],
-    points: [['employee-approvals', 'Review every AI plan before it reaches an employer'], ['decision', 'Approve, or ask for changes'], ['sap-box', 'Send approved candidates to SAP SuccessFactors'], ['history', 'Every decision is logged with your name']]
+    eyebrow: 'SkillSetu for counsellors',
+    headline: 'AI does the legwork.<br>You make the call.',
+    lead: 'Every plan the agents build comes to you first: the skills with proof, the job match, the fairness check and every AI step. Nothing reaches an employer without your approval.',
+    perks: [
+      ['employee-approvals', 'Review in one place', 'Skills with evidence, plan and fairness check.'],
+      ['decision', 'Approve or ask for changes', 'The person sees your note in their chat.'],
+      ['sap-box', 'Straight to SAP SuccessFactors', 'Approved candidates, without their name.'],
+      ['history', 'Fully traceable', 'Every AI step and decision is logged.']
+    ],
+    stat: ['0', 'candidates reach an employer without a counsellor’s approval.', 'By design']
   }
 };
+
+// The picture on the sign-in page: a still preview of what SkillSetu does. Decorative only.
+function loginPicture(portal) {
+  if (portal === 'counsellor') return `<div class="lp-pic" aria-hidden="true">
+      <div class="lp-case"><div class="lp-case-h"><ui5-avatar size="XS" initials="P" color-scheme="Accent6"></ui5-avatar><div><b>Priya</b><small>SS-7820E5 · Operations Coordinator</small></div><span class="lp-tag warn">Waiting for review</span></div>
+        <div class="lp-row"><span class="chip good">✓ Budget management</span><span class="lp-proof">“I ran the household budget for 10 years”</span></div>
+        <div class="lp-row"><span class="chip good">✓ Negotiation</span><span class="lp-proof">“negotiated with vendors for school functions”</span></div>
+        <div class="lp-row"><span class="lp-fair">Fairness check: a résumé filter would reject her for a 6-year gap. SkillSetu ignores it.</span></div>
+        <div class="lp-acts"><span class="lp-btn primary">Approve</span><span class="lp-btn">Request changes</span><span class="lp-btn">Send to SAP SuccessFactors</span></div></div>
+    </div>`;
+  return `<div class="lp-pic" aria-hidden="true">
+      <div class="lp-bubble"><ui5-avatar size="XS" initials="P" color-scheme="Accent6"></ui5-avatar><span>“I took 6 years off to raise my kids. I ran the household budget and organised every school event.”</span></div>
+      <div class="lp-flow">${ic('arrow-bottom', 16)} SkillSetu finds</div>
+      <div class="lp-chips"><span class="chip good">✓ Budget management</span><span class="chip good">✓ Event planning</span><span class="chip good">✓ Negotiation</span></div>
+      <div class="lp-flow">${ic('arrow-bottom', 16)} and matches</div>
+      <div class="lp-job">${ring(75, 54)}<div><b>Operations Coordinator</b><small>Bengaluru · matched on skills only</small></div><span class="lp-tag good">Low automation risk</span></div>
+    </div>`;
+}
+
 const loginState = { mode: 'signin' };
 
 function loginPage(portal) {
   const L = LOGIN[portal], signup = loginState.mode === 'signup', a = ssAuth.get();
   view.innerHTML = `<div class="page login-page ${portal}"><div class="login-wrap">
     <aside class="login-side">
-      <img src="logo.svg" alt="" class="login-logo">
-      <h2>${portal === 'counsellor' ? 'SkillSetu<br>Counsellor Workspace' : 'Find the skills you already have'}</h2>
-      <ul>${L.points.map(([i, t]) => `<li>${ic(i, 20)}<span>${t}</span></li>`).join('')}</ul>
-      ${portal === 'counsellor' ? '<p class="login-fine">Restricted to registered counsellors. Every sign-in and decision is recorded.</p>' : ''}
+      <div class="lp-brand"><img src="logo.svg" alt="" class="login-logo"><b>SkillSetu</b><span>${L.eyebrow}</span></div>
+      <h2>${L.headline}</h2>
+      <p class="lp-lead">${L.lead}</p>
+      ${loginPicture(portal)}
+      <ul class="lp-perks">${L.perks.map(([i, t, d]) => `<li>${ic(i, 20)}<span><b>${t}</b><small>${d}</small></span></li>`).join('')}</ul>
+      <div class="lp-stat"><b>${L.stat[0]}</b><span>${L.stat[1]}<small>${L.stat[2]}</small></span></div>
     </aside>
     <section class="login-card">
       <h1>${signup ? (portal === 'counsellor' ? 'Create a counsellor account' : 'Create your account') : L.title}</h1>
@@ -1002,6 +1041,7 @@ function loginPage(portal) {
   document.getElementById('lgMode').addEventListener('click', () => { loginState.mode = signup ? 'signin' : 'signup'; loginPage(portal); });
   document.getElementById('lgGuest')?.addEventListener('click', () => { startSession({ guest: true }); location.hash = '#/'; });
   setTimeout(() => document.getElementById(signup ? 'lgName' : 'lgUser')?.focus(), 50);
+  animateRings();
 }
 
 async function submitLogin(portal) {
