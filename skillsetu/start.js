@@ -33,7 +33,8 @@ async function hanaReady(h) {
     const r = await hanaReady(h);
     if (r.ok) {
       db = 'hana';
-      env.CDS_CONFIG = JSON.stringify({ requires: { db: { kind: 'hana', impl: '@cap-js/hana', driver: 'hdb',
+      // HANA Cloud is in another region, so opening a connection can take a few seconds: wait up to 15 s for one.
+      env.CDS_CONFIG = JSON.stringify({ requires: { db: { kind: 'hana', impl: '@cap-js/hana', driver: 'hdb', pool: { acquireTimeoutMillis: 15000, min: 0, max: 10 },
         credentials: { host: h.host, port: h.port, user: h.user, password: h.password, schema: h.schema, useTLS: true, encrypt: true, servername: h.host } } } });
       if (!r.hasTables) {
         log(`SAP HANA Cloud schema ${h.schema} is empty: creating tables and loading demo data...`);

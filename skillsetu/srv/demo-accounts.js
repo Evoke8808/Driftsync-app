@@ -12,7 +12,15 @@ const DEMO = [
   { username: 'anita.ccp', displayName: 'Anita Rao (counsellor)', role: 'counsellor' }
 ];
 
-async function ensure() {
+// Try a few times: right after start the database connection may still be opening.
+async function ensure(tries = 4) {
+  for (let i = 1; i <= tries; i++) {
+    try { return await create(); }
+    catch (e) { if (i === tries) throw e; await new Promise((r) => setTimeout(r, 3000 * i)); }
+  }
+}
+
+async function create() {
   const { Accounts } = cds.entities('skillsetu');
   let made = 0;
   for (const a of DEMO) {
