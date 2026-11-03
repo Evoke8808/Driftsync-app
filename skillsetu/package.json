@@ -19,7 +19,8 @@
     "watch": "cds watch",
     "sap:check": "node mcp/sap/check.js",
     "sap:hana-setup": "node mcp/sap/hana-setup.js",
-    "build": "npm install && cds-deploy"
+    "build": "npm install && cds-deploy",
+    "start:cf": "cds-deploy && cds-serve"
   },
   "cds": {
     "requires": {

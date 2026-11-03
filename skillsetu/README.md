@@ -55,6 +55,23 @@ Without any keys the app still works: rules instead of AI, and sample jobs inste
 
 Check which SAP source answers: `npm run sap:check`. Fill HANA Cloud: `npm run sap:hana-setup`.
 
+## Deploy to SAP BTP (Cloud Foundry)
+
+```bash
+cf login -a https://api.cf.us10-001.hana.ondemand.com --sso
+cf push
+```
+
+`manifest.yml` deploys one Node.js app with a random route; the demo database is rebuilt on every start. Add keys once, then restage:
+
+```bash
+cf set-env skillsetu SAP_API_KEY <your SAP API Hub key>
+cf set-env skillsetu GEMINI_API_KEY <your Gemini key>
+cf restage skillsetu
+```
+
+HANA Cloud works the same way with `HANA_HOST`, `HANA_USER`, `HANA_PASSWORD` and `HANA_SCHEMA`.
+
 ## Use it from other AI assistants (MCP)
 
 | Server | What it offers | How to connect |
