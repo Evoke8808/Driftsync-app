@@ -62,7 +62,7 @@ cf login -a https://api.cf.us10-001.hana.ondemand.com --sso
 cf push
 ```
 
-`manifest.yml` deploys one Node.js app with a random route; the demo database is rebuilt on every start. Add keys once, then restage:
+`manifest.yml` deploys one Node.js app at skillsetu.cfapps.us10-001.hana.ondemand.com (change `routes` for your own account); the demo database is rebuilt on every start. Add keys once, then restage:
 
 ```bash
 cf set-env skillsetu SAP_API_KEY <your SAP API Hub key>

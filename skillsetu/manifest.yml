@@ -2,7 +2,9 @@
 # Keys are not stored here. Set them once with cf set-env (see README), then cf restage skillsetu.
 applications:
   - name: skillsetu
-    random-route: true
+    routes:
+      - route: skillsetu.cfapps.us10-001.hana.ondemand.com
+      - route: skillsetu-persistent-gerenuk-qt.cfapps.us10-001.hana.ondemand.com
     path: .
     memory: 512M
     disk_quota: 1G
