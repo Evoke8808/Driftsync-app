@@ -285,4 +285,41 @@ async function selfCheck() {
 }
 if (process.env.SKILLSETU_AI_CHECK !== 'off') setTimeout(() => selfCheck().catch((e) => debug(`${CHECK}: crashed ${e.message}`)), 1500).unref();
 
-module.exports = { askJson };
+/* ---------- Web search: Gemini with Google Search grounding ---------- */
+// Answers with live Google Search results and returns the web pages it used, so every fact has a source.
+let groundingOffUntil = 0;   // the free Gemini tier has no Google Search quota: after a quota error, skip it for 30 min
+async function webSearch(system, question, { log = console, info } = {}) {
+  if (!GEMINI_KEY) { if (info) info.error = 'no Gemini key'; return null; }
+  if (Date.now() < groundingOffUntil) { if (info) info.error = 'Google Search via Gemini needs a paid Gemini plan'; return null; }
+  const models = [...new Set([geminiModel, PREFERRED, 'gemini-flash-latest', 'gemini-flash-lite-latest'])].filter((m) => !dead.has(m));
+  const t0 = Date.now();
+  let last;
+  for (const model of models.slice(0, 3)) {
+    try {
+      const json = await geminiFetch(`${GEMINI_BASE}/models/${model}:generateContent`, {
+        systemInstruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: question }] }],
+        tools: [{ google_search: {} }],
+        generationConfig: { temperature: 0.2 }
+      }, 15000);
+      const cand = json.candidates?.[0];
+      const text = (cand?.content?.parts || []).map((p) => p.text || '').join('').trim();
+      if (!text) throw Object.assign(new Error('empty answer'), { retry: true });
+      const meta = cand.groundingMetadata || {};
+      const seen = new Set();
+      const sources = (meta.groundingChunks || []).map((c) => c.web).filter((w) => w?.uri && !seen.has(w.title) && seen.add(w.title))
+        .slice(0, 6).map((w) => ({ title: w.title || 'Source', url: w.uri }));
+      return { text, sources, queries: meta.webSearchQueries || [], provider: 'Google Search via Gemini', model, ms: Date.now() - t0 };
+    } catch (e) {
+      last = e;
+      if (e.status === 404) dead.add(model);
+      if (e.status === 429 && /quota/i.test(e.message)) { groundingOffUntil = Date.now() + 30 * 60e3; break; }
+      log.warn?.(`Web search with ${model}: ${e.message}`);
+      if (!e.retry) break;
+    }
+  }
+  if (info) info.error = last ? String(last.message).slice(0, 120) : 'no answer';
+  return null;
+}
+
+module.exports = { askJson, webSearch };

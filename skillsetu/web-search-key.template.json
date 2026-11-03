@@ -1,0 +1,4 @@
+{
+  "_help": "Copy to web-search-key.json and paste a free Tavily key from https://app.tavily.com (or set TAVILY_API_KEY).",
+  "tavilyApiKey": ""
+}

@@ -16,15 +16,17 @@ const AGENTS = [
   require('./why-not'),
   require('./job-risk'),
   require('./after-hire'),
-  require('./setu-chat')
+  require('./setu-chat'),
+  require('./web-research')
 ];
 const BY_ID = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
-const PIPELINE = ['skills', 'growth', 'shield', 'explain', 'market', 'matching', 'pathway', 'readiness', 'human', 'chat'];
+const PIPELINE = ['skills', 'growth', 'shield', 'explain', 'research', 'market', 'matching', 'pathway', 'readiness', 'human', 'chat'];
 const QUESTIONS = require('./skills-discovery').QUESTIONS;
 
 // Clear keywords route without spending an AI call (the free AI tier has tight limits).
 // English, Hinglish and Hindi (Devanagari) words; anything unclear goes to the AI router.
 const RULES = [
+  ['research', /\b(search (the )?(web|internet|online)|google (it|this|for)|look (it |this )?up|on the (web|internet)|latest|news|recent(ly)?|this year|right now|current(ly)? (market|salary|salaries|demand)|which companies|companies (are |that are )?hiring|who is hiring|hiring now|government scheme|yojana|scheme for|average salary|salary in [a-z]+)\b|खोज|योजना|ताज़ा/i],
   ['growth', require('./after-hire').GOT_JOB],
   ['growth', /promotion|\bpromoted\b|\braise\b|hike|grow in my (job|career)|next step in my (job|career)|career growth|तरक्की|प्रमोशन/i],
   ['shield', /(is|will) my (job|role|position) (be )?(safe|secure|at risk|replaced|automated)|job (security|safe|at risk)|lose my job|losing my job|layoffs?|laid off|fired|replace (me|my job|us)|replacing (me|us)|scared about my job|worried about my job|safer (job|role)|internal (move|transfer|role|opening)|move (to )?(another|a different) (team|role|department)|(ai|chatbot|automation)[^.?]{0,40}(my job|take over|replace)|नौकरी (जाने|चली जाएगी|खतरे)|नौकरी सुरक्षित|छंटनी/i],
@@ -54,6 +56,8 @@ async function decide(cf, message, intent, cat) {
   if (intent && BY_ID[intent] && !(needsSkills.includes(intent) && !cf.skills.length)) return { agents: [intent], by: 'button', reason: `Button pressed: ${BY_ID[intent].name}` };
   // Small talk and questions about SkillSetu get a conversational answer from Setu, even before the story.
   if (message && (SMALL_TALK.test(message.trim()) || ABOUT_US.test(message))) return { agents: ['chat'], by: 'rules', reason: 'Small talk or a question about SkillSetu, so Setu answers in chat' };
+  // A question about the outside world can be looked up at any time, even before the story.
+  if (message && RULES[0][0] === 'research' && RULES[0][1].test(message)) return { agents: ['research'], by: 'rules', reason: 'Asks for current facts from the web, so Web Research looks it up' };
   if (!cf.skills.length) return { agents: ['skills'], by: 'rules', reason: 'No skills on file yet, so Skills Discovery goes first' };
   const named = cat && message && TARGET.test(message) && !NOT_TARGET.test(message) && roleInText(message, cat);
   if (named) return { agents: ['pathway'], by: 'rules', roleID: named.ID, reason: `You named your target job: ${named.title}, so Learning Pathway plans for it` };
@@ -64,6 +68,7 @@ async function decide(cf, message, intent, cat) {
   if (interviewing && !REQUEST.test(message) && !hits.some((h) => ['human', 'growth', 'shield', 'explain'].includes(h))) return { agents: ['skills'], by: 'rules', reason: 'Answer to the interview question' };
 
   if (hits.includes('matching')) hits = hits.filter((h) => h !== 'market');
+  if (hits.includes('research')) hits = hits.filter((h) => h !== 'market' && h !== 'matching');
   // "Why was I rejected?" is a question for the explainer, not a request for a readiness check; job-risk questions mention automation too.
   if (hits.includes('explain')) hits = hits.filter((h) => h !== 'readiness' && h !== 'market');
   if (hits.includes('shield') || hits.includes('growth')) hits = hits.filter((h) => h !== 'market' && h !== 'matching');

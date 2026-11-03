@@ -178,7 +178,8 @@ const AGENT_META = {
   shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: 'var(--sapAccentColor2)' },
   growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: 'var(--sapAccentColor8)' },
   'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' },
-  chat: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' }
+  chat: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' },
+  research: { name: 'Web Research', stop: 'Web', icon: ic('world'), color: 'var(--sapAccentColor7)' }
 };
 // Metro map: the main line is the usual journey, the branch line holds the help you can ask for any time.
 const METRO_MAIN = ['orchestrator', 'skills', 'market', 'pathway', 'matching', 'readiness', 'human'];
@@ -527,6 +528,11 @@ function drawCard(c) {
       <div style="flex:1"><h4>${esc(c.course.title)}</h4><div class="meta"><span>${esc(c.course.provider)}</span><span>${esc(c.course.duration)}</span>${c.course.skill ? `<span>Closes: ${esc(label(c.course.skill))}</span>` : ''}</div></div></div>
       ${c.note ? `<div class="barrier"><span class="st ok">${esc(c.by || 'Counsellor')}</span> ${esc(c.note)}</div>` : ''}
       <div class="row" style="margin-top:8px"><a class="btn btn-primary btn-sm" href="#/my-courses">Accept in My assigned courses →</a></div></div>`;
+
+  // Web Research: the pages the answer came from, so every fact can be checked.
+  if (c.type === 'web') return `<div class="card-in web-card"><span class="st-k">Sources</span>
+      <ol class="web-src">${c.sources.map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a> <small>${esc(x.site || '')}</small></li>`).join('')}</ol>
+      <p class="fine">Live web results via ${esc(c.provider || 'web search')}. Check the source before you rely on it.</p></div>`;
 
   if (c.type === 'handoff') {
     const steps = ['Sent', 'Counsellor review', c.status === 'changes' ? 'Changes requested' : 'Approved'];
