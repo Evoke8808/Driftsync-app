@@ -36,7 +36,9 @@ const AGENTS = [
   [ic('human', 22), 'Human-in-the-Loop', '“Who checks the AI?”', 'A counsellor approves plans, recruiters decide hires, users can dispute the AI.'],
   [ic('bulb', 22), 'Why-Not Explainer', '“Nobody tells me why I was rejected.”', 'Explains a “no”: the missing skill, an unfair filter or a job that doesn’t fit, and the smallest change that turns it into a “yes”.'],
   [ic('radar', 22), 'Job Risk Radar', '“Will AI take my job?”', 'Spots jobs at risk of automation early and finds safer roles, first inside the same company.'],
-  [ic('sprout', 22), 'After-Hire Companion', '“What happens after I’m hired?”', 'Check-ins at day 7, 30 and 90, the next step up, and alerts when a better job matches.']
+  [ic('sprout', 22), 'After-Hire Companion', '“What happens after I’m hired?”', 'Check-ins at day 7, 30 and 90, the next step up, and alerts when a better job matches.'],
+  [ic('globe', 22), 'Web Research', '“What’s true right now?”', 'Looks up current facts on the web, such as schemes, salaries and courses, and shows the sources.'],
+  [ic('company-view', 22), 'Company Connect', '“Can I move to another team instead?”', 'With your OK, reads your work profile from your employer over MCP and finds open roles inside your own company.']
 ];
 
 const PROVIDER_COLORS = { 'SAP Learning Hub': 'var(--sapAvatar_6_Background)', 'SWAYAM': 'var(--sapAvatar_1_Background)', 'NPTEL': 'var(--sapAvatar_8_Background)' };
@@ -141,7 +143,7 @@ function home() {
 
   <h2 class="grp">For job seekers</h2>
   <div class="tiles">
-    ${tile({ title: 'My Journey', sub: 'One chat, nine agents', icon: 'discussion', foot: 'Any language', attrs: 'data-href="#/journey"' })}
+    ${tile({ title: 'My Journey', sub: 'Setu + 11 agents', icon: 'discussion', foot: 'Any language', attrs: 'data-href="#/journey"' })}
     ${SERVICES.map((sv, i) => { const [, t] = AGENTS[sv.agent]; return tile({ title: esc(t), sub: esc(sv.cta), icon: ['lightbulb', 'radar-chart', 'trend-up'][i], foot: esc(sv.who), attrs: `data-service="${i}"` }); }).join('')}
     ${tile({ title: 'Jobs', sub: 'Roles hiring on skills', icon: 'suitcase', foot: 'No degree filters', attrs: 'data-href="#/jobs"' })}
     ${tile({ title: 'Courses', sub: 'Short and free', icon: 'course-book', foot: 'SAP Learning Hub, SWAYAM, NPTEL', attrs: 'data-href="#/courses"' })}
@@ -165,7 +167,7 @@ function home() {
   </div></div>`;
 }
 
-/* ---------- My Journey: one chat, nine agents ---------- */
+/* ---------- My Journey: Setu (main agent) + 11 specialist agents ---------- */
 const AGENT_META = {
   orchestrator: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' },
   skills: { name: 'Skills Discovery', stop: 'Skills', icon: ic('search'), color: 'var(--sapAccentColor5)' },
@@ -223,7 +225,7 @@ function showSide(id, remember) {
 function journey() {
   view.innerHTML = `<div class="page journey-page"><div class="container">
     <div class="page-head"><div class="row between"><h1>Talk to SkillSetu</h1><div class="row"><button class="btn btn-ghost btn-sm" id="wideChat" title="Hide the side panels and give the chat the whole screen">Focus chat</button><button class="btn btn-ghost btn-sm" id="newChat" title="Clear this chat and start a new person">New chat</button></div></div>
-      <p>One conversation, nine specialist agents. Setu, the orchestrator, picks who helps you next, every step is logged, and a person signs off.</p></div>
+      <p>Setu is the main agent: it reads your message and picks which of the 11 specialist agents help you next. Every step is logged, and a person signs off.</p></div>
     <div class="metro" id="agentStrip" aria-label="Your route through the agents"></div>
     <div class="chat-layout">
       <section class="chat-box">
@@ -410,7 +412,7 @@ function drawMetro() {
   const el = document.getElementById('agentStrip');
   if (!el) return;
   const v = visitedAgents();
-  el.innerHTML = `<div class="ab-lead"><span class="ab-setu">${AGENT_META.orchestrator.icon}</span><span><b>Setu</b><small>${chat.busy ? 'is working…' : 'picks the agent, or tap one'}</small></span></div>
+  el.innerHTML = `<div class="ab-lead"><span class="ab-setu">${AGENT_META.orchestrator.icon}</span><span><b>Setu</b><small>${chat.busy ? 'Main agent · working…' : 'Main agent · picks the agent, or tap one'}</small></span></div>
     <div class="ab-list">${AGENT_BAR.filter((id) => AGENT_META[id]).map((id) => { const a = AGENT_META[id]; const on = chat.active.includes(id);
       return `<button class="ab-chip ${on ? 'on' : v.has(id) ? 'used' : ''}" style="--ag:${a.color}" data-agent="${id}" title="${on ? `${esc(a.name)} answered your last message` : `Ask ${esc(a.name)}`}">
         <i>${a.icon}</i><span>${esc(a.stop)}</span>${on ? '<em>working</em>' : ''}</button>`; }).join('')}</div>`;
@@ -1096,7 +1098,11 @@ view.addEventListener('keydown', (e) => { if (e.key === 'Enter' && e.target.matc
 function about() {
   return `<div class="page"><div class="container">
     <div class="page-head"><h1>How SkillSetu works</h1>
-      <p>SkillSetu is one chat with nine helpers behind it (we call them agents). Setu, the main agent, picks which one helps you next. A real counsellor checks every plan, and every AI decision is written down so anyone can check it.</p></div>
+      <p>SkillSetu is one chat. Behind it, Setu, the main agent, reads every message and picks which of the 11 specialist agents help you next, and can chain several in one go. A real counsellor checks every plan, and every AI decision is written down so anyone can check it.</p></div>
+    <div class="card setu-main reveal"><div class="icon-tile">${ic('bridge', 26)}</div>
+      <div><span class="badge">Main agent · orchestrator</span><h2>Setu</h2>
+      <p>Reads each message in any language, decides which specialists to run (by rules for clear requests, by an AI router for unclear ones, up to 4 in a row), passes results between them, and answers small talk itself.</p></div></div>
+    <h3 class="setu-sub">The 11 specialist agents Setu works with</h3>
     <div class="grid grid-3">${AGENTS.map(([ic, t, q, d], i) => `<div class="card hover reveal" style="--i:${i}">
       <div class="icon-tile">${ic}</div><h3>${t}</h3><p class="q">${q}</p><p>${d}</p></div>`).join('')}</div>
     <section class="block" style="padding-bottom:0"><div class="card" style="text-align:center;padding:40px">

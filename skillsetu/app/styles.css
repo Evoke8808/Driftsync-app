@@ -1213,3 +1213,10 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .ab-chip.on { background: var(--sapButton_Selected_Background); border-color: var(--sapButton_Selected_BorderColor); color: var(--sapButton_Selected_TextColor); font-weight: 600; }
 .ab-chip em { font-style: normal; font-size: 11px; color: var(--sapPositiveTextColor); }
 .ab-chip.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sapPositiveColor, #30914c); animation: blink 1.4s infinite; }
+
+/* About page: Setu, the main agent, above the specialists */
+.setu-main { display: flex; gap: 20px; align-items: center; margin-bottom: 24px; border: 2px solid var(--sapButton_Emphasized_Background); }
+.setu-main .icon-tile { width: 64px; height: 64px; flex: none; background: var(--sapButton_Emphasized_Background); color: #fff; }
+.setu-main h2 { margin: 6px 0 4px; }
+.setu-main p { margin: 0; }
+.setu-sub { margin: 8px 0 14px; color: var(--sapContent_LabelColor); font-weight: 600; }
