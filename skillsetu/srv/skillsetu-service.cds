@@ -40,6 +40,8 @@ service SkillSetuService @(path: '/api') {
   // Counsellor desk: hand an approved case to SAP SuccessFactors Recruiting, and the push history.
   action sendToSuccessFactors(caseID: String, roleID: String) returns String;
   function sfPushes(caseID: String) returns String;
+  // Counsellor / employer tool: four-fifths rule audit of a résumé filter vs skills-first screening for one job (JSON).
+  function biasAudit(roleID: String) returns String;
 
   // Impact dashboard: live numbers from real cases plus district pilot figures (synthetic, labelled).
   function impact() returns String;

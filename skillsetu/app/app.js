@@ -32,7 +32,7 @@ const AGENTS = [
   [ic('chart', 22), 'Market Intelligence', '“Which jobs even exist now?”', 'Growing roles near your skills, with pay, demand and automation risk.'],
   [ic('cap', 22), 'Learning Pathway', '“I can’t afford a long course.”', 'The shortest gap-closing plan: bite-sized courses on a phone.'],
   [ic('match', 22), 'Inclusive Matching', '“I need income while I learn.”', 'Skills-first, anonymised matches: part-time, remote, apprenticeships.'],
-  [ic('shield', 22), 'Bias Audit & Readiness', '“They reject me before they meet me.”', 'Flags gap, age, college and access barriers; coaches employers to hire on skills.'],
+  [ic('shield', 22), 'Readiness Check', '“They reject me before they meet me.”', 'Shows what a résumé filter would reject you for, and how to present your skills.'],
   [ic('human', 22), 'Human-in-the-Loop', '“Who checks the AI?”', 'A counsellor approves plans, recruiters decide hires, users can dispute the AI.'],
   [ic('bulb', 22), 'Why-Not Explainer', '“Nobody tells me why I was rejected.”', 'Explains a “no”: the missing skill, an unfair filter or a job that doesn’t fit, and the smallest change that turns it into a “yes”.'],
   [ic('radar', 22), 'Job Risk Radar', '“Will AI take my job?”', 'Spots jobs at risk of automation early and finds safer roles, first inside the same company.'],
@@ -172,7 +172,7 @@ const AGENT_META = {
   market: { name: 'Market Intelligence', stop: 'Market', icon: ic('chart'), color: 'var(--sapAccentColor7)' },
   pathway: { name: 'Learning Pathway', stop: 'Learning', icon: ic('cap'), color: 'var(--sapAccentColor8)' },
   matching: { name: 'Inclusive Matching', stop: 'Matching', icon: ic('match'), color: 'var(--sapAccentColor3)' },
-  readiness: { name: 'Bias Audit & Readiness', stop: 'Bias audit', icon: ic('shield'), color: 'var(--sapAccentColor2)' },
+  readiness: { name: 'Readiness Check', stop: 'Readiness', icon: ic('shield'), color: 'var(--sapAccentColor2)' },
   human: { name: 'Human-in-the-Loop', stop: 'Counsellor', icon: ic('human'), color: 'var(--sapAccentColor10)' },
   explain: { name: 'Why-Not Explainer', stop: 'Why not?', icon: ic('bulb'), color: 'var(--sapAccentColor1)' },
   shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: 'var(--sapAccentColor2)' },
@@ -189,7 +189,7 @@ const METRO_BRANCH = ['explain', 'shield', 'growth'];
 // Status tags on the case file: one per agent that has worked on the case.
 const STAMPS = {
   skills: ['Skills verified', 'var(--sapAccentColor5)'], market: ['Market checked', 'var(--sapAccentColor7)'], pathway: ['Plan issued', 'var(--sapAccentColor8)'],
-  matching: ['Matched on skills', 'var(--sapAccentColor3)'], readiness: ['Bias check passed', 'var(--sapAccentColor2)'], explain: ['Why-not explained', 'var(--sapAccentColor1)'],
+  matching: ['Matched on skills', 'var(--sapAccentColor3)'], readiness: ['Readiness checked', 'var(--sapAccentColor2)'], explain: ['Why-not explained', 'var(--sapAccentColor1)'],
   shield: ['Risk scanned', 'var(--sapAccentColor2)'], growth: ['Hired', 'var(--sapAccentColor8)']
 };
 // Status tags already shown for a case, so only new ones animate in.
@@ -497,12 +497,9 @@ function drawCard(c) {
   if (c.type === 'readiness') return `<div class="card-in">
       ${c.barriers.length ? c.barriers.map((b) => `<div class="barrier"><span class="st no">Résumé filter</span> rejects for <b>${esc(b)}</b><span class="st ok">SkillSetu ignores it</span></div>`).join('')
         : '<div class="barrier"><span class="st ok">✓</span> No common filter barriers found.</div>'}
-      <div class="mini-stats"><div><b class="bad">${c.audit.resumeFilterFailingGroups}/${c.audit.groups}</b><span>groups fail with a résumé filter</span></div>
-        <div><b class="good">${c.audit.skillsFirstFailingGroups}/${c.audit.groups}</b><span>fail with SkillSetu</span></div>
-        <div><b>${c.audit.rejected}/${c.audit.qualified}</b><span>qualified people dropped by filters</span></div></div>
       <div class="row between" style="margin-top:6px"><b>Readiness tips</b>${c.tipsBy === 'ai' ? aiTag(c.provider, c.model) : aiTag()}</div>
       <ol class="tips">${c.tips.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
-      <p class="fine">Four-fifths rule audit for ${esc(c.role)} on the synthetic pool of 140 applicants.</p></div>`;
+      <p class="fine">SkillSetu matches on skills only. Counsellors and employers run the group bias audit (four-fifths rule) on their own screening.</p></div>`;
 
   if (c.type === 'whynot') {
     const pass = c.matchPercent >= c.passMark;
@@ -638,6 +635,44 @@ function drawTrace() {
 /* ---------- Counsellor view (Human-in-the-Loop) ---------- */
 const desk = { cases: [], id: null, view: null };
 
+/* ---------- Bias audit (counsellors and employers): four-fifths rule on a job's screening ---------- */
+const audit = { roleID: null, roles: [] };
+async function biasAuditPage() {
+  view.innerHTML = `<div class="page"><div class="container">
+    <div class="page-head"><h1>Bias audit</h1>
+      <p>For counsellors and employers: would this job's screening treat groups fairly? SkillSetu compares a typical résumé filter with skills-first screening on a test pool of 140 candidates, using the four-fifths rule: every group's selection rate must be at least 80% of the best group's.</p></div>
+    <div class="side-card"><label class="ba-pick"><b>Job</b><select id="baRole"></select></label><div id="baBody"><div class="skeleton" style="height:240px"></div></div></div>
+  </div></div>`;
+  try { if (!audit.roles.length) audit.roles = (await get('Roles?$orderby=title&$select=ID,title,company,type')).filter((r) => r.type !== 'internal' && !String(r.ID).startsWith('5a900000-5a90-')); }
+  catch (e) { document.getElementById('baBody').innerHTML = '<div class="empty">Could not load the jobs just now.</div>'; return; }
+  audit.roleID = audit.roleID || audit.roles[0]?.ID;
+  const sel = document.getElementById('baRole');
+  sel.innerHTML = audit.roles.map((r) => `<option value="${esc(r.ID)}" ${r.ID === audit.roleID ? 'selected' : ''}>${esc(r.title)} · ${esc(r.company)}</option>`).join('');
+  sel.addEventListener('change', () => { audit.roleID = sel.value; drawAudit(); });
+  drawAudit();
+}
+async function drawAudit() {
+  const el = document.getElementById('baBody');
+  el.innerHTML = '<div class="skeleton" style="height:240px"></div>';
+  let a;
+  try { a = JSON.parse((await (await fetch(`/api/biasAudit(roleID='${encodeURIComponent(audit.roleID)}')`)).json()).value); }
+  catch (e) { el.innerHTML = '<div class="empty">Could not run the audit just now.</div>'; return; }
+  const s = a.summary, pct = (x) => `${Math.round(x * 100)}%`;
+  const cell = (m) => `<td>${pct(m.rate)} <span class="muted">(${m.selected} people)</span></td><td><span class="pill ${m.pass ? 'good' : 'bad'}">${m.air === null ? '–' : m.air.toFixed(2)} ${m.pass ? 'pass' : 'fail'}</span></td>`;
+  el.innerHTML = `
+    <div class="ov-kpis" style="grid-template-columns:repeat(4,1fr);margin-top:14px">
+      <div class="ov-kpi warn"><b>${s.resumeFilterFailingGroups}/${a.groups.length}</b><span>groups fail with a résumé filter</span></div>
+      <div class="ov-kpi good"><b>${s.skillsFirstFailingGroups}/${a.groups.length}</b><span>groups fail with skills-first</span></div>
+      <div class="ov-kpi"><b>${s.qualifiedRejectedByResumeFilter}/${s.qualified}</b><span>qualified people a résumé filter drops</span></div>
+      <div class="ov-kpi"><b>${a.requiredSkills.length}</b><span>skills this job needs: ${esc(a.requiredSkills.map(label).join(', '))}</span></div></div>
+    <div class="table-wrap"><table class="ba-table"><thead><tr><th>Group</th><th>People</th><th>Résumé filter: selected</th><th>Ratio vs best</th><th>Skills-first: selected</th><th>Ratio vs best</th></tr></thead>
+      <tbody>${a.groups.map((g) => `<tr><td><b>${esc(g.label)}</b></td><td>${g.n}</td>${cell(g.resumeFilter)}${cell(g.skillsFirst)}</tr>`).join('')}</tbody></table></div>
+    <h4 style="margin-top:18px">Skills-first shortlist (anonymous)</h4>
+    <div class="cp-table">${a.shortlist.map((c) => `<div class="cp-row"><b>${esc(c.alias)}</b><span>${c.match}% skills match</span>
+      <span>${c.wouldBeRejectedFor.length ? `A résumé filter would reject for: ${esc(c.wouldBeRejectedFor.join(', '))}` : 'Passes a résumé filter too'}</span><span></span></div>`).join('') || '<p class="muted">No one in the test pool clears the skills bar for this job.</p>'}</div>
+    <p class="fine">Ratio = the group's selection rate ÷ the best group's rate; below 0.8 fails the four-fifths rule (US EEOC). Test pool of 140 synthetic candidates in ${a.groups.length} groups.</p>`;
+}
+
 /* ---------- Company portal: a partner company's data, served to the agents by the Company MCP ---------- */
 const portal = { companies: [], id: null, skills: [] };
 const odata = async (path, opt = {}) => {
@@ -685,6 +720,16 @@ async function drawCompany() {
   el.innerHTML = `<div class="side-card">
     <div class="row between"><h4 style="margin:0">${esc(c.name)} <span class="muted" style="font-weight:400">@${esc(c.domain)}</span></h4>${del('Companies', c.ID, c.name)}</div>
     ${c.about ? `<p class="muted" style="margin:6px 0 0">${esc(c.about)}</p>` : ''}
+    <h4 style="margin-top:18px">Employees (${em.value.length})</h4>
+    <div class="sk-list">${em.value.map((x) => `<details class="sk-row emp-row"><summary><b>${esc(x.name)}</b><span class="muted">${esc(x.title || '')}${x.department ? ` · ${esc(x.department)}` : ''}${x.years != null ? ` · ${x.years} yrs` : ''}</span><span class="muted">${esc(x.email)}</span></summary>
+      <div class="sk-more"><div class="row">${String(x.skills || '').split(',').filter((k) => k.trim()).map((k) => `<span class="chip on sm">${esc(label(k.trim()))}</span>`).join('') || '<span class="muted">No skills listed</span>'}</div>
+        <span class="st-k">Projects</span><ul class="emp-proj">${String(x.projects || '').split('\n').filter(Boolean).map((p) => `<li>${esc(p)}</li>`).join('') || '<li class="muted">No projects listed</li>'}</ul>
+        <div>${del('Employees', x.ID, x.name)}</div></div></details>`).join('') || '<p class="muted">No employees yet.</p>'}</div>
+    <details class="cp-add"><summary class="btn btn-ghost btn-sm">+ Add an employee</summary>
+      <form class="cp-form" id="cpNewEm"><input name="name" placeholder="Full name" required><input name="email" type="email" placeholder="Work email @${esc(c.domain)}" required>
+        <input name="title" placeholder="Current role"><input name="department" placeholder="Department"><input name="years" type="number" min="0" placeholder="Years at the company">
+        <span class="st-k">Skills</span>${skillBoxes('skills')}
+        <textarea name="projects" rows="4" placeholder="Projects, one per line: Project name: what they did"></textarea><button class="btn btn-primary btn-sm">Save employee</button></form></details>
     <h4 style="margin-top:18px">Open postings (${po.value.length})</h4>
     <div class="cp-table">${po.value.map((p) => `<div class="cp-row"><b>${esc(p.title)}</b><span>${esc([p.department, p.location, `${p.openings} opening(s)`].filter(Boolean).join(' · '))}</span>
       <span class="row">${String(p.skills || '').split(',').filter((x) => x.trim()).map((x) => `<span class="chip on sm">${esc(label(x.trim()))}</span>`).join('')}</span>${del('Postings', p.ID, p.title)}</div>`).join('') || '<p class="muted">No postings yet.</p>'}</div>
@@ -692,14 +737,6 @@ async function drawCompany() {
       <form class="cp-form" id="cpNewPo"><input name="title" placeholder="Job title" required><input name="department" placeholder="Department"><input name="location" placeholder="Location">
         <input name="openings" type="number" min="1" value="1"><textarea name="description" rows="2" placeholder="What the job involves"></textarea>
         <span class="st-k">Skills it needs</span>${skillBoxes('skills')}<button class="btn btn-primary btn-sm">Save posting</button></form></details>
-    <h4 style="margin-top:18px">Employees (${em.value.length})</h4>
-    <div class="cp-table">${em.value.map((x) => `<div class="cp-row"><b>${esc(x.name)}</b><span>${esc(x.email)} · ${esc(x.title || '')}${x.years != null ? ` · ${x.years} yrs` : ''}</span>
-      <span class="muted">${String(x.projects || '').split('\n').filter(Boolean).length} project(s)</span>${del('Employees', x.ID, x.name)}</div>`).join('') || '<p class="muted">No employees yet.</p>'}</div>
-    <details class="cp-add"><summary class="btn btn-ghost btn-sm">+ Add an employee</summary>
-      <form class="cp-form" id="cpNewEm"><input name="name" placeholder="Full name" required><input name="email" type="email" placeholder="Work email @${esc(c.domain)}" required>
-        <input name="title" placeholder="Current role"><input name="department" placeholder="Department"><input name="years" type="number" min="0" placeholder="Years at the company">
-        <span class="st-k">Skills</span>${skillBoxes('skills')}
-        <textarea name="projects" rows="4" placeholder="Projects, one per line: Project name: what they did"></textarea><button class="btn btn-primary btn-sm">Save employee</button></form></details>
   </div>`;
   const save = (id, entity, shape) => el.querySelector(id).addEventListener('submit', async (e) => {
     e.preventDefault(); const fd = new FormData(e.target);
@@ -1299,7 +1336,7 @@ async function signOut() {
 function updateChrome() {
   const a = ssAuth.get(), counsellor = a?.role === 'counsellor';
   // Two separate workspaces: counsellors never see the job seeker pages, and job seekers never see the desk.
-  const hide = counsellor ? ['home', 'journey', 'courses', 'about'] : ['overview', 'counsellor', 'impact', 'company-portal'];
+  const hide = counsellor ? ['home', 'journey', 'courses', 'about'] : ['overview', 'counsellor', 'impact', 'company-portal', 'bias-audit'];
   document.querySelectorAll('#navLinks a').forEach((el) => { el.hidden = hide.includes(el.dataset.route); });
   const sb = document.getElementById('shellbar');
   if (sb) sb.setAttribute('secondary-title', counsellor ? 'Counsellor workspace' : 'Skills-first hiring on SAP BTP');
@@ -1349,13 +1386,14 @@ function route() {
   }
   // My Journey needs a job seeker account or guest mode; the desk needs a counsellor.
   if (r === 'journey' && !a) { toast('Sign in or continue as a guest to start your journey'); location.replace('#/login'); return; }
-  if ((r === 'counsellor' || r === 'overview' || r === 'impact' || r === 'company-portal') && a?.role !== 'counsellor') { toast('The counsellor workspace needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
+  if ((r === 'counsellor' || r === 'overview' || r === 'impact' || r === 'company-portal' || r === 'bias-audit') && a?.role !== 'counsellor') { toast('The counsellor workspace needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
   // Counsellors work in their own workspace: the job seeker pages send them to their overview.
   if (a?.role === 'counsellor' && ['home', 'journey', 'courses', 'my-courses', 'about'].includes(r)) { location.replace('#/overview'); return; }
   if (r === 'journey') journey();
   else if (r === 'counsellor') counsellor();
   else if (r === 'overview') overview();
   else if (r === 'company-portal') companyPortal();
+  else if (r === 'bias-audit') biasAuditPage();
   else if (r === 'jobs' || r === 'courses') catalog(r);
   else if (r === 'my-courses') myCoursesPage();
   else if (r === 'impact') impact();

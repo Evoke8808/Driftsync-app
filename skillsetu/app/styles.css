@@ -1191,3 +1191,11 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .connect-banner .cb-ic { color: var(--sapBrandColor); } .connect-banner .cb-t { flex: 1; display: grid; gap: 2px; font-size: var(--sapFontSize); }
 .connect-banner .cb-t span { color: var(--sapContent_LabelColor); } .connect-banner .cb-a { display: flex; gap: 8px; }
 @media (max-width: 900px) { .cp-grid { grid-template-columns: 1fr; } .cp-row { grid-template-columns: 1fr; } .connect-banner { flex-wrap: wrap; } }
+
+/* Bias audit page */
+.ba-pick { display: flex; align-items: center; gap: 12px; } .ba-pick select { padding: 8px 10px; font: inherit; min-width: 320px; }
+.ba-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: var(--sapFontSize); }
+.ba-table th, .ba-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--sapList_BorderColor); }
+.ba-table th { color: var(--sapContent_LabelColor); font-weight: 600; font-size: 12px; }
+
+.emp-row > summary { gap: 12px; } .emp-proj { margin: 0; padding-left: 18px; display: grid; gap: 4px; }

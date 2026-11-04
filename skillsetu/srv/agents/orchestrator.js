@@ -48,6 +48,11 @@ const LOG = cds.log('orchestrator');
 const CONNECT = /connect (my )?(company|work|office|employer)('s)? (data|profile|account)|link my (company|work) (data|profile)/i;
 const INTERNAL = /\b(my company|inside (my|the) company|internal (move|role|transfer|opening|posting|job)s?|other (team|department)s?|different (track|role|team|department)|switch (team|role|department)|move (to|within)|roles? (in|at|inside) (my|our) (company|office))\b/i;
 
+// Several requests in one message ("find me a part-time job, make a plan and send it to my counsellor"):
+// Setu plans the steps and runs up to four agents in a row, passing the chosen job from one to the next.
+const MULTI = /\b(and then|then|after that|and also|also|and)\b[^.?!]{0,80}\b(make|build|create|send|show|find|check|search|look up|connect|plan|apply|explain|compare)\b|,\s*(then |and )?(make|build|send|show|find|check|search|connect|plan|apply)\b/i;
+const MAX_STEPS = 4;
+
 // Greetings, thanks and questions about SkillSetu itself.
 const SMALL_TALK = /^(hi+|hello|hey|hii+|namaste|namaskar|hola|thanks?|thank you|thank u|thx|ty|ok(ay)?|cool|nice|great|awesome|bye|good (morning|afternoon|evening|night)|नमस्ते|धन्यवाद|शुक्रिया)(?![a-z])[\s!.,?🙏😊]*$/i;
 const ABOUT_US = /\b(who are you|what are you|what (can|do) you do|what is skillsetu|what's skillsetu|how does (this|skillsetu|it|setu) work|how do (i|you) use|are you (a|an) (ai|bot|human)|tum kaun|aap kaun)\b|तुम कौन|आप कौन/i;
@@ -72,6 +77,11 @@ async function decide(cf, message, intent, cat) {
   if (named) return { agents: ['pathway'], by: 'rules', roleID: named.ID, reason: `You named your target job: ${named.title}, so Learning Pathway plans for it` };
 
   let hits = RULES.filter(([, re]) => re.test(message)).map(([id]) => id);
+  // A multi-step request: run every agent it asks for, in journey order (no AI needed when the words are clear).
+  if (MULTI.test(message)) {
+    const steps = PIPELINE.filter((id) => hits.includes(id) && id !== 'skills' && !(id === 'market' && hits.includes('matching'))).slice(0, MAX_STEPS);
+    if (steps.length >= 2) return { agents: steps, by: 'rules', plan: true, reason: `Plan: ${steps.map((id) => BY_ID[id].name).join(' → ')}` };
+  }
   // A complaint about the AI always reaches a person, even in the middle of the interview.
   const interviewing = cf.lastAgent === 'skills' && cf.interviewStep < QUESTIONS.length;
   if (interviewing && !REQUEST.test(message) && !hits.some((h) => ['human', 'growth', 'shield', 'explain'].includes(h))) return { agents: ['skills'], by: 'rules', reason: 'Answer to the interview question' };
@@ -89,13 +99,13 @@ async function decide(cf, message, intent, cat) {
   const res = await ai.askJson(
     'You are the SkillSetu career orchestrator. Decide which specialist agent should answer the person. Agents:\n' +
     AGENTS.map((a) => `- ${a.id}: ${a.describe}`).join('\n') +
-    '\nPick one agent, or two (in the order they should run) only if the message clearly asks for two things. ' +
+    `\nPick one agent. If the message asks for several things, plan up to ${MAX_STEPS} agents in the order they should run (e.g. market, then pathway, then human). ` +
     'If the message describes the person’s life or experience, pick "skills". ' +
     'Return JSON only: {"agents":["<id>"],"reason":"<one short sentence in English>"}',
     `Case file: ${cf.skills.length} skills on file; target role ${cf.targetRole_ID ? 'chosen' : 'not chosen'}; plan ${cf.plan ? 'ready' : 'not made'}; review status ${cf.status}.\nMessage: ${message.slice(0, 1500)}`,
     { log: LOG, info });
-  const picked = (res?.data?.agents || []).filter((id) => BY_ID[id]).slice(0, 2);
-  if (picked.length) return { agents: picked, by: 'ai', reason: String(res.data.reason || '').slice(0, 300), provider: res.provider, model: res.model, ms: res.ms };
+  const picked = [...new Set((res?.data?.agents || []).filter((id) => BY_ID[id]))].slice(0, MAX_STEPS);
+  if (picked.length) return { agents: picked, by: 'ai', plan: picked.length > 1, reason: `${picked.length > 1 ? `Plan: ${picked.map((id) => BY_ID[id].name).join(' → ')}. ` : ''}${String(res.data.reason || '')}`.slice(0, 300), provider: res.provider, model: res.model, ms: res.ms };
 
   // No AI available: take the next step of the journey.
   const next = !cf.targetRole_ID ? 'market' : !cf.plan ? 'pathway' : cf.lastAgent !== 'readiness' ? 'readiness' : 'human';
@@ -155,18 +165,21 @@ async function handle({ caseID, message, intent, roleID, name, force, forceReaso
     to: route.agents.map((id) => BY_ID[id].name), provider: route.provider || 'rules', model: route.model || null, ms: route.ms || 0, aiError: route.aiError || null });
 
   const replies = [], suggestions = [];
+  let chainRole = null;   // a job one step picked (e.g. the top match) is handed to the next step (plan, counsellor)
   for (const id of route.agents) {
     const agent = BY_ID[id];
     const t0 = Date.now();
     let out;
     const aiInfo = {};   // the agent's AI call reports here why it fell back to rules
     try {
-      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID: roleID || route.roleID, extra, user, log: cds.log('agent:' + id), aiInfo });
+      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID: roleID || route.roleID || chainRole, extra, user, log: cds.log('agent:' + id), aiInfo });
     } catch (e) {
       LOG.error(`${agent.name} failed`, e);
       out = { replies: [{ text: `${agent.name} hit a problem, so I skipped it. Try again in a moment.` }], note: 'error: ' + e.message };
     }
     cf.lastAgent = id;
+    // Hand the job this step chose to the next step: its first suggested role, or the case's target job.
+    if (route.plan && !roleID) chainRole = (out.suggestions || []).find((x) => x.roleID)?.roleID || cf.targetRole_ID || chainRole;
     for (const r of out.replies) {
       replies.push({ agent: id, name: agent.name, icon: agent.icon, text: r.text, card: r.card || null });
       chat.push({ role: 'agent', agent: id, text: r.text, card: r.card ? JSON.stringify(r.card) : null });

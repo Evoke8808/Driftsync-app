@@ -19,9 +19,9 @@ const TIPS = {
 
 module.exports = {
   id: 'readiness',
-  name: 'Bias Audit & Readiness',
+  name: 'Readiness Check',
   icon: '🛡️',
-  describe: 'Checks whether résumé filters would unfairly reject the person (career gap, age, degree, job title, accessibility), shows the fairness audit for the role, and coaches them. Use for questions about rejection, bias, fairness, career gaps, CVs or interview readiness.',
+  describe: 'For the job seeker: shows what a typical résumé filter would unfairly reject them for (career gap, age, degree, job title, accessibility) and coaches them to present their skills. Use for questions about rejection, bias, fairness, career gaps, CVs or interview readiness. (The group-level bias audit of employers\' screening is a counsellor tool.)',
 
   async run(ctx) {
     const { cf, cat, log, aiInfo, message } = ctx;

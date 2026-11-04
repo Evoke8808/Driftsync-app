@@ -11,7 +11,7 @@ const SkillSetuService = class SkillSetuService extends cds.ApplicationService {
 
   async init() {
     /* ---------- Sign-in and access rules ---------- */
-    const COUNSELLOR_ONLY = new Set(['reviewCase', 'cases', 'sendToSuccessFactors', 'sfPushes', 'runWatch', 'markHired', 'outbox', 'recommendCourse', 'caseCourses', 'withdrawCourse']);
+    const COUNSELLOR_ONLY = new Set(['biasAudit', 'reviewCase', 'cases', 'sendToSuccessFactors', 'sfPushes', 'runWatch', 'markHired', 'outbox', 'recommendCourse', 'caseCourses', 'withdrawCourse']);
     const PRIVATE_ENTITIES = new Set(['CaseFiles', 'ChatMessages', 'AuditLog', 'Outbox', 'Candidates']);
     const deny = (req, status, code, message) => req.reject({ status, code, message });
     this.before('*', async (req) => {
@@ -50,6 +50,10 @@ const SkillSetuService = class SkillSetuService extends cds.ApplicationService {
     this.on('sendToSuccessFactors', async (req) => {
       const r = await sf.push(req.data.caseID, req.data.roleID || null);
       return r.error ? req.reject(r.error, r.message) : JSON.stringify(r);
+    });
+    this.on('biasAudit', async (req) => {
+      const r = await lib.biasAudit(req.data.roleID);
+      return r ? JSON.stringify(r) : req.reject(404, 'Job not found');
     });
     this.on('sfPushes', async (req) => JSON.stringify(await sf.history(req.data.caseID || null)));
 
