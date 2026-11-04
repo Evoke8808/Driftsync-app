@@ -1,4 +1,5 @@
 using { skillsetu as db } from '../db/schema';
+using from '../db/company';
 
 service SkillSetuService @(path: '/api') {
 
@@ -16,7 +17,9 @@ service SkillSetuService @(path: '/api') {
   // Sign-in. portal is "user" (job seeker) or "counsellor" (username ending in "ccp"). Everyone uses a password.
   // Returns JSON { token, username, displayName, role }. Send the token back in the X-SkillSetu-Token header.
   action login(username: String, secret: String, portal: String) returns String;
-  action register(username: String, displayName: String, secret: String, portal: String) returns String;
+  action register(username: String, displayName: String, secret: String, portal: String, email: String) returns String;
+  // The partner company that matches the signed-in job seeker's work email, and whether this case is connected (JSON).
+  function companyMatch(caseID: String) returns String;
   action logout() returns String;
   function me() returns String;
 

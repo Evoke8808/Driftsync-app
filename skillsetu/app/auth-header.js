@@ -10,7 +10,7 @@
   const plainFetch = window.fetch.bind(window);
   window.fetch = (url, opts = {}) => {
     const a = window.ssAuth.get();
-    const api = typeof url === 'string' && url.startsWith('/api/');
+    const api = typeof url === 'string' && (url.startsWith('/api/') || url.startsWith('/company-admin/'));
     if (api && a?.token) opts = { ...opts, headers: { ...(opts.headers || {}), 'X-SkillSetu-Token': a.token } };
     return plainFetch(url, opts).then((res) => {
       // An expired session: forget it so the app asks the person to sign in again.

@@ -161,7 +161,8 @@ module.exports = {
 
     // No card while there is nothing to show yet. Counts use SkillSetu's own catalog (SAP jobs are counted by the Market agent).
     const sapJob = (id) => String(id || '').startsWith('5a900000-5a90-');
-    const base = { ...cat, roles: cat.roles.filter((r) => !sapJob(r.ID)), roleSkills: cat.roleSkills.filter((rs) => !sapJob(rs.role_ID)) };
+    const own = new Set(cat.roles.filter((r) => !sapJob(r.ID) && r.type !== 'internal').map((r) => r.ID));
+    const base = { ...cat, roles: cat.roles.filter((r) => own.has(r.ID)), roleSkills: cat.roleSkills.filter((rs) => own.has(rs.role_ID)) };
     const card = cf.skills.length ? { type: 'skills', skills: explainSkills(cf.skills.map((s) => ({ ...s, isNew: fresh.some((f) => f.skill === s.skill) })), base),
       jobsOpened: jobsOpened(cf.skills, base), totalJobs: base.roles.length, source: res ? 'ai' : 'keywords', provider: res?.provider, model: res?.model } : null;
     const lead = ack || (fresh.length ? say.found(fresh.length, fresh.map((f) => label(f.skill)).join(', '))

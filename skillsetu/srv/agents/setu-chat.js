@@ -38,7 +38,7 @@ module.exports = {
     const { cf, cat, message, log, aiInfo } = ctx;
     const hi = isHindi(cf, message);
     const names = cf.skills.map((s) => s.skill);
-    const top = names.length ? rankRoles(names, cat).filter((m) => !String(m.role.ID).startsWith('5a900000-5a90-')).slice(0, 3) : [];
+    const top = names.length ? rankRoles(names, cat).filter((m) => !String(m.role.ID).startsWith('5a900000-5a90-') && m.role.type !== 'internal').slice(0, 3) : [];
     const target = cf.targetRole_ID && cat.roles.find((r) => r.ID === cf.targetRole_ID);
     let recent = [];
     try { recent = await SELECT.from(db().ChatMessages).columns('role', 'text').where({ caseFile_ID: cf.ID }).orderBy('seq desc').limit(6); } catch (e) { /* new case: no history yet */ }
@@ -46,6 +46,7 @@ module.exports = {
       `Skills on file: ${names.length ? cf.skills.map((s) => `${label(s.skill)} (proof: "${String(s.reason || '').slice(0, 80)}")`).join('; ') : 'none yet'}.`,
       `Top matches: ${top.length ? top.map((m) => `${m.role.title} at ${m.role.company}, ${m.matchPercent}% match, ${m.role.salary}, ${m.role.type}, automation risk ${m.role.automationRisk}`).join('; ') : 'none yet'}.`,
       `Target job: ${target ? target.title : 'not chosen'}. Learning plan: ${cf.plan ? `${cf.plan.roleTitle}, ${cf.plan.steps?.length || 0} course(s), about ${cf.plan.totalHours} hours` : 'not made'}.`,
+      (cf.profile?.company?.connected ? `Connected company data (from the Company MCP): ${cf.profile.company.title} in ${cf.profile.company.department} at ${cf.profile.company.name}, ${cf.profile.company.years} years. Projects: ${(cf.profile.company.projects || []).map((p) => `${p.name}: ${p.detail}`).join(' | ')}. Open roles inside ${cf.profile.company.name}: ${cat.roles.filter((r) => r.type === 'internal' && r.company === cf.profile.company.name).map((r) => r.title).join(', ') || 'none loaded yet'}.` : 'Company data: not connected.') + '\n' +
       `Counsellor review: ${cf.status}. Work preference: ${[cf.prefs?.type, cf.prefs?.location].filter(Boolean).join(', ') || 'not given'}.`,
       `Catalog: ${cat.roles.filter((r) => !String(r.ID).startsWith('5a900000-5a90-')).length} jobs, ${cat.skills.length} skills, ${cat.courses.length} free courses.`,
       `Recent chat (newest last):\n${recent.reverse().map((m) => `${m.role === 'user' ? 'Person' : 'SkillSetu'}: ${String(m.text || '').slice(0, 300)}`).join('\n')}`

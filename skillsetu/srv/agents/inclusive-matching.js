@@ -21,7 +21,7 @@ module.exports = {
     const wantRemote = type === 'remote' || cf.prefs.remote === true;
     const hi = isHindi(cf, message);
 
-    const all = rankRoles(cf.skills.map((s) => s.skill), cat).filter((m) => m.matchPercent >= MIN_MATCH);
+    const all = rankRoles(cf.skills.map((s) => s.skill), cat).filter((m) => m.matchPercent >= MIN_MATCH && m.role.type !== 'internal');
     const fits = (m) => {
       const r = m.role, remote = r.location === 'Remote' || r.type === 'remote';
       if (type === 'part-time' && !(r.type === 'part-time' || remote)) return false;

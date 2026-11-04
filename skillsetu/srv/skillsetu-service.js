@@ -34,6 +34,19 @@ const SkillSetuService = class SkillSetuService extends cds.ApplicationService {
     this.on('logout', async (req) => { await auth.logout(req); return JSON.stringify({ ok: true }); });
     this.on('me', (req) => JSON.stringify(req.ssUser && !req.ssUser.internal ? req.ssUser : null));
 
+    // Is the signed-in job seeker's work email from a partner company? Asked over the Company MCP; no personal data returned.
+    this.on('companyMatch', async (req) => {
+      const u = req.ssUser && !req.ssUser.internal && req.ssUser.role === 'user' ? req.ssUser : null;
+      if (!u) return JSON.stringify(null);
+      const { AccountEmails, CompanyLinks } = lib.db();
+      const acct = await SELECT.one.from(AccountEmails).where({ username: u.username });
+      if (!acct?.email) return JSON.stringify(null);
+      const r = await require('./integrations/company-mcp-client').safe('find_company_by_email', { email: acct.email });
+      if (!r.data?.company || !r.data.employee) return JSON.stringify(null);
+      const link = req.data.caseID && await SELECT.one.from(CompanyLinks).columns('ID').where({ username: u.username, caseID: req.data.caseID });
+      return JSON.stringify({ company: r.data.company.name, title: r.data.employee.title, connected: !!link });
+    });
+
     this.on('sendToSuccessFactors', async (req) => {
       const r = await sf.push(req.data.caseID, req.data.roleID || null);
       return r.error ? req.reject(r.error, r.message) : JSON.stringify(r);
@@ -59,7 +72,7 @@ const SkillSetuService = class SkillSetuService extends cds.ApplicationService {
       if (!String(message || '').trim() && !intent) return req.reject(400, 'Send a message or an intent');
       if (!await canOpen(req, caseID)) return deny(req, 403, 'NOT_YOUR_CASE', 'This case belongs to someone else.');
       const user = req.ssUser && !req.ssUser.internal && req.ssUser.role === 'user' ? req.ssUser : null;
-      const out = await orchestrator.handle({ caseID, message, intent, roleID, name: name || (user && !caseID ? user.displayName : null) });
+      const out = await orchestrator.handle({ caseID, message, intent, roleID, name: name || (user && !caseID ? user.displayName : null), user });
       // A new case started by a signed-in job seeker belongs to them.
       if (user && !caseID && out.caseID) await UPDATE(lib.db().CaseFiles, out.caseID).with({ owner: user.username });
       return JSON.stringify(out);

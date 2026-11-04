@@ -179,7 +179,9 @@ const AGENT_META = {
   growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: 'var(--sapAccentColor8)' },
   'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' },
   chat: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' },
-  research: { name: 'Web Research', stop: 'Web', icon: ic('world'), color: 'var(--sapAccentColor7)' }
+  research: { name: 'Web Research', stop: 'Web', icon: ic('world'), color: 'var(--sapAccentColor7)' },
+  company: { name: 'Company Connect', stop: 'Company', icon: ic('building'), color: 'var(--sapAccentColor5)' },
+  'company-mcp': { name: 'Company MCP', stop: 'MCP', icon: ic('connected'), color: 'var(--sapAccentColor5)' }
 };
 // Metro map: the main line is the usual journey, the branch line holds the help you can ask for any time.
 const METRO_MAIN = ['orchestrator', 'skills', 'market', 'pathway', 'matching', 'readiness', 'human'];
@@ -228,6 +230,7 @@ function journey() {
     <div class="chat-layout">
       <section class="chat-box">
         <div class="chat-head" id="chatHead"></div>
+        <div class="connect-banner" id="connectBanner" hidden></div>
         <div class="chat-log" id="chatLog"></div>
         <div class="suggest" id="suggest"></div>
         <form class="composer" id="composer">
@@ -356,6 +359,7 @@ function drawChat(thinking = false) {
   log.scrollTop = log.scrollHeight;
   chat.messages.forEach((m) => { m.fresh = false; });
   typeOut(log);
+  drawConnect();
   document.getElementById('suggest').innerHTML = chat.suggestions.map((s, i) =>
     `<button class="chip sugg" data-sugg="${i}">${esc(s.label)} →</button>`).join('');
   document.getElementById('sendBtn').disabled = chat.busy;
@@ -365,6 +369,31 @@ function drawChat(thinking = false) {
   drawTrace();
   drawHistory();
   animateRings();
+}
+
+// "Connect your company data?": shown to a signed-in job seeker whose work email belongs to a partner company.
+const connectState = { checked: null, match: null };
+async function drawConnect() {
+  const el = document.getElementById('connectBanner');
+  if (!el) return;
+  const a = ssAuth.get();
+  const key = `${a?.username || ''}|${chat.caseID || ''}`;
+  if (a?.role !== 'user' || !a.username) { el.hidden = true; return; }
+  let dismissed = false; try { dismissed = localStorage.getItem('ss-connect-no:' + a.username) === '1'; } catch (e) {}
+  if (connectState.checked !== key) {
+    connectState.checked = key; connectState.match = null;
+    try { connectState.match = JSON.parse((await (await fetch(`/api/companyMatch(caseID='${encodeURIComponent(chat.caseID || '')}')`)).json()).value); } catch (e) {}
+  }
+  const m = connectState.match;
+  const connected = m?.connected || chat.caseFile?.profile?.company?.connected;
+  if (!m || connected || dismissed) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<div class="cb-ic">${ic('building', 22)}</div>
+    <div class="cb-t"><b>You work at ${esc(m.company)}. Connect your work profile?</b>
+      <span>Setu will read your role, skills and projects from ${esc(m.company)}'s data over the Company MCP, and show open roles inside the company. Your employer isn't told.</span></div>
+    <div class="cb-a"><button class="btn btn-primary btn-sm" data-intent="company" data-label="Connect my ${esc(m.company)} data">Connect</button>
+      <button class="btn btn-ghost btn-sm" id="cbNo">Not now</button></div>`;
+  document.getElementById('cbNo').addEventListener('click', () => { try { localStorage.setItem('ss-connect-no:' + a.username, '1'); } catch (e) {} el.hidden = true; });
 }
 
 function visitedAgents() {
@@ -529,6 +558,19 @@ function drawCard(c) {
       ${c.note ? `<div class="barrier"><span class="st ok">${esc(c.by || 'Counsellor')}</span> ${esc(c.note)}</div>` : ''}
       <div class="row" style="margin-top:8px"><a class="btn btn-primary btn-sm" href="#/my-courses">Accept in My assigned courses →</a></div></div>`;
 
+  // Company Connect: the work profile read over the Company MCP, and the open roles inside the company.
+  if (c.type === 'company') return `<div class="card-in company-card">
+      <div class="row between"><b class="sc-title">${ic('building')} ${esc(c.company)} · work profile</b><span class="badge">via Company MCP</span></div>
+      <p class="sc-intro">${esc(c.profile.title)} · ${esc(c.profile.department || '')} · ${c.profile.years ?? '?'} years${c.added?.length ? ` · added ${c.added.map((x) => esc(label(x))).join(', ')}` : ''}</p>
+      ${c.profile.projects?.length ? `<div class="sk-list">${c.profile.projects.map((p) => `<details class="sk-row"><summary><b>${esc(p.name)}</b></summary><div class="sk-more">${esc(p.detail || '')}</div></details>`).join('')}</div>` : ''}
+      ${c.tracks?.length ? `<span class="st-k" style="display:block;margin-top:12px">Open roles inside ${esc(c.company)}</span>
+        ${c.tracks.map((t, i) => `<div class="mrole reveal" style="--i:${i}">${ring(t.matchPercent, 52)}
+          <div class="mr-body"><b>${esc(t.title)}</b><div class="meta">${[t.department, t.location, `${t.openings} opening${t.openings === 1 ? '' : 's'}`].filter(Boolean).map(esc).join(' · ')}</div>
+            <div class="row" style="margin-top:6px">${t.matched.map((x) => `<span class="chip good">✓ ${esc(label(x))}</span>`).join('')}${t.missing.map((x) => `<span class="chip warn">+ ${esc(label(x))}</span>`).join('')}${t.missing.length ? `<span class="pill">~${t.hours}h to learn</span>` : '<span class="pill good">Ready now</span>'}</div></div>
+          <div class="mr-acts">${t.missing.length ? `<button class="btn btn-ghost btn-sm" data-intent="pathway" data-role-id="${esc(t.ID)}" data-label="Plan for ${esc(t.title)}">Plan →</button>` : ''}
+            <button class="link-btn" data-intent="human" data-role-id="${esc(t.ID)}" data-label="Ask a counsellor about moving to ${esc(t.title)}">Ask a counsellor</button></div></div>`).join('')}` : ''}
+      <p class="fine">Read with your OK from ${esc(c.company)}'s data over the Company MCP. Your employer isn't told that you looked.</p></div>`;
+
   // Web Research: the pages the answer came from, so every fact can be checked.
   if (c.type === 'web') return `<div class="card-in web-card"><span class="st-k">Sources</span>
       <ol class="web-src">${c.sources.map((x) => `<li><a href="${esc(x.url)}" target="_blank" rel="noopener noreferrer">${esc(x.title)}</a> <small>${esc(x.site || '')}</small></li>`).join('')}</ol>
@@ -595,6 +637,83 @@ function drawTrace() {
 
 /* ---------- Counsellor view (Human-in-the-Loop) ---------- */
 const desk = { cases: [], id: null, view: null };
+
+/* ---------- Company portal: a partner company's data, served to the agents by the Company MCP ---------- */
+const portal = { companies: [], id: null, skills: [] };
+const odata = async (path, opt = {}) => {
+  const res = await fetch('/company-admin/' + path, { ...opt, headers: { 'Content-Type': 'application/json', ...(opt.headers || {}) } });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error?.message || `HTTP ${res.status}`);
+  return res.status === 204 ? null : res.json();
+};
+async function companyPortal() {
+  view.innerHTML = `<div class="page"><div class="container">
+    <div class="page-head"><h1>Company data</h1>
+      <p>Partner companies share their open roles and employee profiles here. SkillSetu's agents read them through the <b>Company MCP</b>, and only after the employee agrees to connect.</p></div>
+    <div class="cp-grid"><section class="side-card" id="cpList"></section><section id="cpDetail"></section></div>
+    <div class="side-card cp-mcp"><b>${ic('connected')} Company MCP</b>
+      <span>Endpoint <code>POST /company-mcp</code> (header <code>x-api-key</code>) · tools <code>find_company_by_email</code>, <code>get_employee_profile</code>, <code>list_open_postings</code></span></div>
+  </div></div>`;
+  try {
+    const [c, sk] = await Promise.all([odata('Companies?$orderby=name'), portal.skills.length ? null : get('Skills?$orderby=name')]);
+    portal.companies = c.value; if (sk) portal.skills = sk.map((x) => x.name);
+  } catch (e) { document.getElementById('cpList').innerHTML = `<div class="empty">Could not load company data: ${esc(e.message)}</div>`; return; }
+  if (!portal.companies.some((x) => x.ID === portal.id)) portal.id = portal.companies[0]?.ID || null;
+  drawCompanies();
+}
+function drawCompanies() {
+  const el = document.getElementById('cpList');
+  el.innerHTML = `<h4>Companies (${portal.companies.length})</h4>
+    ${portal.companies.map((c) => `<button class="case-row ${c.ID === portal.id ? 'on' : ''}" data-cp="${esc(c.ID)}"><b>${esc(c.name)}<small>@${esc(c.domain)}</small></b></button>`).join('')}
+    <form class="cp-form" id="cpNewCo"><span class="st-k">Add a company</span>
+      <input name="name" placeholder="Company name" required><input name="domain" placeholder="Email domain, e.g. acme.in" required>
+      <input name="about" placeholder="What the company does (optional)"><button class="btn btn-primary btn-sm">Add company</button></form>`;
+  el.querySelectorAll('[data-cp]').forEach((b) => b.addEventListener('click', () => { portal.id = b.dataset.cp; drawCompanies(); }));
+  el.querySelector('#cpNewCo').addEventListener('submit', async (e) => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+    try { const c = await odata('Companies', { method: 'POST', body: JSON.stringify(f) }); portal.id = c.ID; toast(`${c.name} added`); companyPortal(); } catch (err) { toast('Could not add: ' + err.message); }
+  });
+  drawCompany();
+}
+const skillBoxes = (name) => `<div class="cp-skills">${portal.skills.map((s) => `<label><input type="checkbox" name="${name}" value="${esc(s)}"> ${esc(label(s))}</label>`).join('')}</div>`;
+async function drawCompany() {
+  const el = document.getElementById('cpDetail');
+  const c = portal.companies.find((x) => x.ID === portal.id);
+  if (!c) { el.innerHTML = '<div class="side-card empty">Add a company to start.</div>'; return; }
+  el.innerHTML = '<div class="side-card"><div class="skeleton" style="height:200px"></div></div>';
+  const [po, em] = await Promise.all([odata(`Postings?$filter=company_ID eq ${c.ID}&$orderby=title`), odata(`Employees?$filter=company_ID eq ${c.ID}&$orderby=name`)]);
+  const del = (kind, id, what) => `<button class="link-btn" data-del="${kind}" data-id="${esc(id)}" title="Delete ${esc(what)}">Delete</button>`;
+  el.innerHTML = `<div class="side-card">
+    <div class="row between"><h4 style="margin:0">${esc(c.name)} <span class="muted" style="font-weight:400">@${esc(c.domain)}</span></h4>${del('Companies', c.ID, c.name)}</div>
+    ${c.about ? `<p class="muted" style="margin:6px 0 0">${esc(c.about)}</p>` : ''}
+    <h4 style="margin-top:18px">Open postings (${po.value.length})</h4>
+    <div class="cp-table">${po.value.map((p) => `<div class="cp-row"><b>${esc(p.title)}</b><span>${esc([p.department, p.location, `${p.openings} opening(s)`].filter(Boolean).join(' · '))}</span>
+      <span class="row">${String(p.skills || '').split(',').filter((x) => x.trim()).map((x) => `<span class="chip on sm">${esc(label(x.trim()))}</span>`).join('')}</span>${del('Postings', p.ID, p.title)}</div>`).join('') || '<p class="muted">No postings yet.</p>'}</div>
+    <details class="cp-add"><summary class="btn btn-ghost btn-sm">+ Add a posting</summary>
+      <form class="cp-form" id="cpNewPo"><input name="title" placeholder="Job title" required><input name="department" placeholder="Department"><input name="location" placeholder="Location">
+        <input name="openings" type="number" min="1" value="1"><textarea name="description" rows="2" placeholder="What the job involves"></textarea>
+        <span class="st-k">Skills it needs</span>${skillBoxes('skills')}<button class="btn btn-primary btn-sm">Save posting</button></form></details>
+    <h4 style="margin-top:18px">Employees (${em.value.length})</h4>
+    <div class="cp-table">${em.value.map((x) => `<div class="cp-row"><b>${esc(x.name)}</b><span>${esc(x.email)} · ${esc(x.title || '')}${x.years != null ? ` · ${x.years} yrs` : ''}</span>
+      <span class="muted">${String(x.projects || '').split('\n').filter(Boolean).length} project(s)</span>${del('Employees', x.ID, x.name)}</div>`).join('') || '<p class="muted">No employees yet.</p>'}</div>
+    <details class="cp-add"><summary class="btn btn-ghost btn-sm">+ Add an employee</summary>
+      <form class="cp-form" id="cpNewEm"><input name="name" placeholder="Full name" required><input name="email" type="email" placeholder="Work email @${esc(c.domain)}" required>
+        <input name="title" placeholder="Current role"><input name="department" placeholder="Department"><input name="years" type="number" min="0" placeholder="Years at the company">
+        <span class="st-k">Skills</span>${skillBoxes('skills')}
+        <textarea name="projects" rows="4" placeholder="Projects, one per line: Project name: what they did"></textarea><button class="btn btn-primary btn-sm">Save employee</button></form></details>
+  </div>`;
+  const save = (id, entity, shape) => el.querySelector(id).addEventListener('submit', async (e) => {
+    e.preventDefault(); const fd = new FormData(e.target);
+    const body = { ...Object.fromEntries([...fd.entries()].filter(([k]) => k !== 'skills')), skills: fd.getAll('skills').join(', '), company_ID: c.ID };
+    shape(body);
+    try { await odata(entity, { method: 'POST', body: JSON.stringify(body) }); toast('Saved'); drawCompany(); } catch (err) { toast('Could not save: ' + err.message); }
+  });
+  save('#cpNewPo', 'Postings', (b) => { b.openings = +b.openings || 1; });
+  save('#cpNewEm', 'Employees', (b) => { b.years = b.years === '' ? null : +b.years; });
+  el.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+    if (!confirm('Delete this?')) return;
+    try { await odata(`${b.dataset.del}(${b.dataset.id})`, { method: 'DELETE' }); toast('Deleted'); b.dataset.del === 'Companies' ? companyPortal() : drawCompany(); } catch (err) { toast('Could not delete: ' + err.message); }
+  }));
+}
 
 /* ---------- Counsellor overview: the counsellor's home page ---------- */
 async function overview() {
@@ -1101,6 +1220,7 @@ function loginPage(portal) {
       <form id="loginForm" class="login-form" autocomplete="on">
         ${signup ? `<label><span>Full name</span><ui5-input id="lgName" placeholder="${portal === 'counsellor' ? 'e.g. Meera Iyer' : 'e.g. Priya Sharma'}"></ui5-input></label>` : ''}
         <label><span>Username</span><ui5-input id="lgUser" placeholder="${L.userPh}" autocomplete="username"></ui5-input></label>
+        ${signup && portal === 'user' ? '<label><span>Work email (optional)</span><ui5-input id="lgEmail" type="Email" placeholder="you@yourcompany.com"></ui5-input><span class="fine" style="margin:0">If your employer works with SkillSetu, you can choose to connect your work profile later.</span></label>' : ''}
         <label><span>Password</span><ui5-input id="lgPass" type="Password" placeholder="${signup ? 'At least 6 characters' : 'Password'}" autocomplete="${signup ? 'new-password' : 'current-password'}"></ui5-input></label>
         ${signup ? '<label><span>Confirm password</span><ui5-input id="lgPass2" type="Password" autocomplete="new-password"></ui5-input></label>' : ''}
         <ui5-button design="Emphasized" id="lgGo" class="login-go">${signup ? 'Create account' : 'Sign in'}</ui5-button>
@@ -1136,7 +1256,7 @@ async function submitLogin(portal) {
   const btn = document.getElementById('lgGo'); btn.disabled = true;
   try {
     const res = await fetch('/api/' + (signup ? 'register' : 'login'), { method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(signup ? { username, displayName: v('lgName'), secret, portal } : { username, secret, portal }) });
+      body: JSON.stringify(signup ? { username, displayName: v('lgName'), secret, portal, email: v('lgEmail') } : { username, secret, portal }) });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
       const code = body.error?.code;
@@ -1179,7 +1299,7 @@ async function signOut() {
 function updateChrome() {
   const a = ssAuth.get(), counsellor = a?.role === 'counsellor';
   // Two separate workspaces: counsellors never see the job seeker pages, and job seekers never see the desk.
-  const hide = counsellor ? ['home', 'journey', 'courses', 'about'] : ['overview', 'counsellor', 'impact'];
+  const hide = counsellor ? ['home', 'journey', 'courses', 'about'] : ['overview', 'counsellor', 'impact', 'company-portal'];
   document.querySelectorAll('#navLinks a').forEach((el) => { el.hidden = hide.includes(el.dataset.route); });
   const sb = document.getElementById('shellbar');
   if (sb) sb.setAttribute('secondary-title', counsellor ? 'Counsellor workspace' : 'Skills-first hiring on SAP BTP');
@@ -1229,12 +1349,13 @@ function route() {
   }
   // My Journey needs a job seeker account or guest mode; the desk needs a counsellor.
   if (r === 'journey' && !a) { toast('Sign in or continue as a guest to start your journey'); location.replace('#/login'); return; }
-  if ((r === 'counsellor' || r === 'overview' || r === 'impact') && a?.role !== 'counsellor') { toast('The counsellor workspace needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
+  if ((r === 'counsellor' || r === 'overview' || r === 'impact' || r === 'company-portal') && a?.role !== 'counsellor') { toast('The counsellor workspace needs a counsellor sign-in'); location.replace('#/counsellor-login'); return; }
   // Counsellors work in their own workspace: the job seeker pages send them to their overview.
   if (a?.role === 'counsellor' && ['home', 'journey', 'courses', 'my-courses', 'about'].includes(r)) { location.replace('#/overview'); return; }
   if (r === 'journey') journey();
   else if (r === 'counsellor') counsellor();
   else if (r === 'overview') overview();
+  else if (r === 'company-portal') companyPortal();
   else if (r === 'jobs' || r === 'courses') catalog(r);
   else if (r === 'my-courses') myCoursesPage();
   else if (r === 'impact') impact();

@@ -31,6 +31,10 @@
         "kind": "sqlite",
         "credentials": {
           "url": "db.sqlite"
+        },
+        "pool": {
+          "min": 1,
+          "max": 4
         }
       },
       "SFRecruiting": {

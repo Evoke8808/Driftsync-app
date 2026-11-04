@@ -74,6 +74,17 @@ cf restage skillsetu
 
 HANA Cloud works the same way with `HANA_HOST`, `HANA_USER`, `HANA_PASSWORD` and `HANA_SCHEMA`.
 
+## Company MCP: career moves inside your own company
+
+Partner employers add their data in the **Company data** portal (counsellor workspace): company name and email domain,
+open internal postings (with the skills they need) and employees (work email, role, skills, projects).
+
+A job seeker who signs up with a work email from that domain sees **"You work at ServiceFirst. Connect your work profile?"**.
+After they agree, the **Company Connect** agent reads their role, skills and projects and the open internal postings through
+the **Company MCP server** (`POST /company-mcp`, tools `find_company_by_email`, `get_employee_profile`, `list_open_postings`),
+adds the skills with their projects as proof, and ranks the internal roles they could move to instead of being let go.
+Setu's chat then answers questions about their projects with that context. Demo: sign in as **Meena** (meena@servicefirst.in).
+
 ## Use it from other AI assistants (MCP)
 
 | Server | What it offers | How to connect |

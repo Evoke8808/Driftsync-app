@@ -14,7 +14,7 @@ module.exports = {
     const hi = isHindi(cf, message);
     const names = cf.skills.map((s) => s.skill);
     // SAP jobs get their own list below, so the main list shows SkillSetu's catalog only.
-    const all = rankRoles(names, cat).filter((m) => m.matchPercent > 0 && !sapMcp.isSapRole(m.role.ID));
+    const all = rankRoles(names, cat).filter((m) => m.matchPercent > 0 && !sapMcp.isSapRole(m.role.ID) && m.role.type !== 'internal');
     const ranked = all.slice(0, 4);
     // A job the person names ("what about data entry specialist?") goes first, even if it isn't the top match.
     const asked = roleInText(message, cat);
@@ -25,7 +25,7 @@ module.exports = {
       ranked.unshift(askedMatch);
       ranked.length = Math.min(ranked.length, 4);
     }
-    const catalogSize = cat.roles.filter((r) => !sapMcp.isSapRole(r.ID)).length;
+    const catalogSize = cat.roles.filter((r) => !sapMcp.isSapRole(r.ID) && r.type !== 'internal').length;
 
     if (!ranked.length) {
       return { replies: [{ text: hi ? 'नौकरी ढूँढने से पहले मुझे आपके कुछ और हुनर जानने हैं। अपने काम के बारे में थोड़ा और बताइए।' : 'I need a few more skills before I can find roles. Tell me a bit more about what you’ve done.' }],

@@ -40,7 +40,7 @@ async function login({ username, secret, portal }) {
 
 // Create an account from the sign-up form of either portal. Counsellor usernames must end in "ccp",
 // and a "ccp" username can't be made from the job seeker page.
-async function register({ username, displayName, secret, portal }) {
+async function register({ username, displayName, secret, portal, email }) {
   const u = clean(username), counsellor = portal === 'counsellor';
   if (!/^[a-z0-9._-]{3,30}$/.test(u)) throw new AuthError(400, 'BAD_USERNAME', 'Usernames are 3 to 30 letters or numbers (dots, dashes and underscores are fine).');
   if (counsellor && !isCounsellorName(u)) throw new AuthError(400, 'NEEDS_CCP', 'Counsellor usernames must end in "ccp", for example meera.ccp');
@@ -50,6 +50,9 @@ async function register({ username, displayName, secret, portal }) {
   if (await SELECT.one.from(Accounts).where({ username: u })) throw new AuthError(409, 'TAKEN', 'That username is taken. Try another one.');
   const acc = { username: u, displayName: String(displayName || '').trim().slice(0, 100) || u, role: counsellor ? 'counsellor' : 'user', secret: hash(secret) };
   await INSERT.into(Accounts).entries(acc);
+  // A work email links the account to a partner company later (the person still has to agree to connect).
+  const mail = String(email || '').trim().toLowerCase();
+  if (/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) await INSERT.into(tables().AccountEmails).entries({ username: u, email: mail });
   return newSession(acc);
 }
 

@@ -7,7 +7,7 @@ server starts (srv/demo-accounts.js) if they don't exist yet. Password for all o
 |---|---|---|
 | Job seeker | `priya` | Priya Sharma, back after a 6-year career break |
 | Job seeker | `vikram` | Vikram Singh, ex-Army Havildar, 22 years |
-| Job seeker | `meena` | Meena Reddy, customer service, job at risk from AI |
+| Job seeker | `meena` | Meena Reddy, customer service, job at risk from AI · work email meena@servicefirst.in (demo partner company ServiceFirst) |
 | Job seeker | `demo` | Priya (demo) |
 | Counsellor | `meera.ccp` | Meera Iyer |
 | Counsellor | `anita.ccp` | Anita Rao |

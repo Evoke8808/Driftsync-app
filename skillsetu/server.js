@@ -14,7 +14,7 @@ cds.on('bootstrap', (app) => {
   // Compress text responses (the SAP UI5 bundle shrinks from 1.2 MB to about 300 KB). MCP streams are left alone.
   try {
     const compression = require('compression');
-    app.use(compression({ filter: (req, res) => !/^\/(sap-)?mcp\b/.test(req.path) && compression.filter(req, res) }));
+    app.use(compression({ filter: (req, res) => !/mcp\b/.test(req.path) && compression.filter(req, res) }));
   } catch (e) { cds.log('server').warn('Compression is off (run "npm install"):', e.message); }
 
   // Static files: the UI5 bundle and fonts never change, so browsers keep them for 30 days.
@@ -28,17 +28,18 @@ cds.on('bootstrap', (app) => {
   try { require('./mcp/http').mount(app); }
   catch (e) { cds.log('mcp').warn('MCP endpoint is off (run "npm install" to turn it on):', e.message); }
 });
-// Services added after the database was first set up (e.g. the Fiori counsellor service) need their views.
-// Create any view that is missing, without touching tables or data.
+// Tables and services added after the database was first set up (company data, the Fiori counsellor service)
+// get created here. Only what is missing is created; existing tables and data are never touched.
 cds.once('served', async () => {
-  try { await require('./srv/demo-accounts').ensure(); } catch (e) { cds.log('demo').warn('Could not create demo accounts:', e.message); }
   try {
     const db = await cds.connect.to('db');
     const dialect = /hana/.test(db.options?.kind || db.kind || '') ? 'hana' : 'sqlite';
-    const ddl = [].concat(cds.compile.to.sql(await cds.load('*'), { dialect })).filter((s) => /^CREATE VIEW/i.test(s));
+    const ddl = [].concat(cds.compile.to.sql(await cds.load('*'), { dialect })).filter((s) => /^CREATE (TABLE|VIEW)/i.test(s));
     let made = 0;
     for (const sql of ddl) { try { await db.run(sql); made++; } catch (e) { /* already there */ } }
-    if (made) cds.log('server').info(`created ${made} missing view(s)`);
+    if (made) cds.log('server').info(`created ${made} missing table(s)/view(s)`);
   } catch (e) { cds.log('server').warn('Could not check views:', e.message); }
+  // Demo accounts and the demo company come after the tables exist.
+  try { await require('./srv/demo-accounts').ensure(); } catch (e) { cds.log('demo').warn('Could not create demo accounts:', e.message); }
 });
 module.exports = cds.server;

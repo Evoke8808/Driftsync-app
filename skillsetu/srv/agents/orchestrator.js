@@ -17,10 +17,11 @@ const AGENTS = [
   require('./job-risk'),
   require('./after-hire'),
   require('./setu-chat'),
-  require('./web-research')
+  require('./web-research'),
+  require('./company-connect')
 ];
 const BY_ID = Object.fromEntries(AGENTS.map((a) => [a.id, a]));
-const PIPELINE = ['skills', 'growth', 'shield', 'explain', 'research', 'market', 'matching', 'pathway', 'readiness', 'human', 'chat'];
+const PIPELINE = ['skills', 'company', 'growth', 'shield', 'explain', 'research', 'market', 'matching', 'pathway', 'readiness', 'human', 'chat'];
 const QUESTIONS = require('./skills-discovery').QUESTIONS;
 
 // Clear keywords route without spending an AI call (the free AI tier has tight limits).
@@ -43,6 +44,10 @@ const REQUEST = /\?|^(show|find|give|what|which|how|can|could|tell me|i want|i n
 
 const LOG = cds.log('orchestrator');
 
+// Company data (partner employers): connect it, or ask about roles inside the company once connected.
+const CONNECT = /connect (my )?(company|work|office|employer)('s)? (data|profile|account)|link my (company|work) (data|profile)/i;
+const INTERNAL = /\b(my company|inside (my|the) company|internal (move|role|transfer|opening|posting|job)s?|other (team|department)s?|different (track|role|team|department)|switch (team|role|department)|move (to|within)|roles? (in|at|inside) (my|our) (company|office))\b/i;
+
 // Greetings, thanks and questions about SkillSetu itself.
 const SMALL_TALK = /^(hi+|hello|hey|hii+|namaste|namaskar|hola|thanks?|thank you|thank u|thx|ty|ok(ay)?|cool|nice|great|awesome|bye|good (morning|afternoon|evening|night)|नमस्ते|धन्यवाद|शुक्रिया)(?![a-z])[\s!.,?🙏😊]*$/i;
 const ABOUT_US = /\b(who are you|what are you|what (can|do) you do|what is skillsetu|what's skillsetu|how does (this|skillsetu|it|setu) work|how do (i|you) use|are you (a|an) (ai|bot|human)|tum kaun|aap kaun)\b|तुम कौन|आप कौन/i;
@@ -56,6 +61,10 @@ async function decide(cf, message, intent, cat) {
   if (intent && BY_ID[intent] && !(needsSkills.includes(intent) && !cf.skills.length)) return { agents: [intent], by: 'button', reason: `Button pressed: ${BY_ID[intent].name}` };
   // Small talk and questions about SkillSetu get a conversational answer from Setu, even before the story.
   if (message && (SMALL_TALK.test(message.trim()) || ABOUT_US.test(message))) return { agents: ['chat'], by: 'rules', reason: 'Small talk or a question about SkillSetu, so Setu answers in chat' };
+  // Company data: connecting it works before the story too; once connected, internal moves go to Company Connect.
+  if (message && (CONNECT.test(message) || (cf.profile?.company?.connected && INTERNAL.test(message)))) return { agents: ['company'], by: 'rules', reason: CONNECT.test(message) ? 'Asks to connect company data, so Company Connect reads it over the Company MCP' : 'Asks about moves inside their own company, so Company Connect checks open internal postings' };
+  // Questions about their own work projects: Setu answers in chat from the connected company profile.
+  if (message && cf.profile?.company?.connected && /\bprojects?\b/i.test(message)) return { agents: ['chat'], by: 'rules', reason: 'Asks about their own projects, so Setu answers from the connected company profile' };
   // A question about the outside world can be looked up at any time, even before the story.
   if (message && RULES[0][0] === 'research' && RULES[0][1].test(message)) return { agents: ['research'], by: 'rules', reason: 'Asks for current facts from the web, so Web Research looks it up' };
   if (!cf.skills.length) return { agents: ['skills'], by: 'rules', reason: 'No skills on file yet, so Skills Discovery goes first' };
@@ -124,7 +133,7 @@ async function nextSeq(entity, caseID) {
 
 // Called by the chat action. Returns everything the UI needs for one turn.
 // force: run exactly this agent with the message (used by the Integration API). extra: externalRef / district.
-async function handle({ caseID, message, intent, roleID, name, force, forceReason, extra }) {
+async function handle({ caseID, message, intent, roleID, name, force, forceReason, extra, user }) {
   const { ChatMessages, AuditLog, Roles } = db();
   const text = String(message || '').trim();
   const cf = await loadCase(caseID);
@@ -152,7 +161,7 @@ async function handle({ caseID, message, intent, roleID, name, force, forceReaso
     let out;
     const aiInfo = {};   // the agent's AI call reports here why it fell back to rules
     try {
-      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID: roleID || route.roleID, extra, log: cds.log('agent:' + id), aiInfo });
+      out = await agent.run({ cf, cat, message: intent ? '' : text, roleID: roleID || route.roleID, extra, user, log: cds.log('agent:' + id), aiInfo });
     } catch (e) {
       LOG.error(`${agent.name} failed`, e);
       out = { replies: [{ text: `${agent.name} hit a problem, so I skipped it. Try again in a moment.` }], note: 'error: ' + e.message };

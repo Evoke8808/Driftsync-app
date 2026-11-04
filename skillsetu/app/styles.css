@@ -1173,3 +1173,21 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .web-src { margin: 6px 0 0; padding-left: 20px; display: grid; gap: 4px; }
 .web-src a { color: var(--sapLinkColor); }
 .web-src small { color: var(--sapContent_LabelColor); }
+
+/* Company data portal and the "connect your company data" banner */
+.cp-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 18px; align-items: start; }
+.cp-form { display: grid; gap: 8px; margin-top: 12px; }
+.cp-form input, .cp-form textarea { padding: 8px 10px; font: inherit; }
+.cp-skills { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 4px 10px; font-size: var(--sapFontSmallSize, 13px); }
+.cp-table { display: grid; gap: 6px; margin-top: 6px; }
+.cp-row { display: grid; grid-template-columns: minmax(140px, 1fr) minmax(160px, 1.4fr) minmax(0, 2fr) auto; gap: 10px; align-items: center; padding: 8px 12px;
+  border: 1px solid var(--sapList_BorderColor); border-radius: var(--sapElement_BorderCornerRadius); font-size: var(--sapFontSize); }
+.cp-row > span:nth-child(2) { color: var(--sapContent_LabelColor); }
+.cp-add { margin-top: 8px; } .cp-add > summary { list-style: none; display: inline-flex; align-items: center; cursor: pointer; }
+.cp-add > summary::-webkit-details-marker { display: none; }
+.cp-mcp { margin-top: 18px; display: grid; gap: 4px; } .cp-mcp code { font-family: '72Mono', monospace; font-size: 12px; }
+.connect-banner { display: flex; gap: 12px; align-items: center; padding: 12px 22px; background: var(--sapInformationBackground); border-bottom: 1px solid var(--sapList_BorderColor); }
+.connect-banner[hidden] { display: none; }
+.connect-banner .cb-ic { color: var(--sapBrandColor); } .connect-banner .cb-t { flex: 1; display: grid; gap: 2px; font-size: var(--sapFontSize); }
+.connect-banner .cb-t span { color: var(--sapContent_LabelColor); } .connect-banner .cb-a { display: flex; gap: 8px; }
+@media (max-width: 900px) { .cp-grid { grid-template-columns: 1fr; } .cp-row { grid-template-columns: 1fr; } .connect-banner { flex-wrap: wrap; } }

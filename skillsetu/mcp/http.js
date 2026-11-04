@@ -4,6 +4,7 @@ const express = require('express');
 const { StreamableHTTPServerTransport } = require('@modelcontextprotocol/sdk/server/streamableHttp.js');
 const { createServer } = require('./skillsetu-mcp');
 const { createSapServer } = require('./sap-mcp');
+const { createCompanyServer } = require('./company-mcp');
 
 const API_KEY = process.env.SKILLSETU_API_KEY || 'skillsetu-demo-key';
 const rpcError = (res, status, code, message) => res.status(status).json({ jsonrpc: '2.0', error: { code, message }, id: null });
@@ -12,6 +13,8 @@ function mount(app) {
   serve(app, '/mcp', (req) => createServer({ baseUrl: `${req.protocol}://${req.get('host')}`, apiKey: API_KEY }));
   // The SAP company-data MCP server (read-only open jobs from SuccessFactors / HANA Cloud), same API key.
   serve(app, '/sap-mcp', () => createSapServer());
+  // The Company MCP server: partner company data (employees, projects, internal postings), same API key.
+  serve(app, '/company-mcp', () => createCompanyServer());
 }
 
 function serve(app, route, make) {
