@@ -45,7 +45,7 @@ const SAY = {
     jobs: 'मेरे लायक नौकरियाँ दिखाओ', flexible: 'पार्ट-टाइम या घर से काम', stop: 'बस इतना, नौकरियाँ दिखाओ'
   }
 };
-const isHindi = (t) => /[\u0900-\u097F]/.test(t);
+const isHindi = (t) => /[\u0900-\u097F]/.test(t) || require('./lib').hinglish(t);
 const has = (c, skill) => c.skills.some((s) => s.skill === skill);
 const asked = (c) => String(c.asked || '').split(',').filter(Boolean).map(Number);
 // Next fallback question that is neither asked nor already answered by the story.

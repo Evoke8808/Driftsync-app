@@ -200,7 +200,9 @@ function parseProfile(text) {
 }
 
 // Reply in Hindi when the person writes in Devanagari; for a button press, look at what they wrote last.
-const isHindi = (cf, message) => /[\u0900-\u097F]/.test(message || '') || (!message && /[\u0900-\u097F]/.test(String(cf?.story || '').slice(-300)));
+// Hindi written in Latin letters (Hinglish): two or more common Hindi words.
+const hinglish = (t) => ((String(t || '').toLowerCase().match(/\b(maine|mera|meri|mere|mujhe|mujhko|hai|hain|tha|thi|kiya|kiye|karta|karti|karna|kaam|naukri|ghar|bachon|saal|ke liye|ka|ki|ko|se|aur|kya|kaun|kaise|nahi|nahin|chahiye|dauraan|sambhala|banao|bhejo|dikhao|batao|wala|wali)\b/g) || []).length >= 2);
+const isHindi = (cf, message) => /[\u0900-\u097F]/.test(message || '') || hinglish(message) || (!message && /[\u0900-\u097F]/.test(String(cf?.story || '').slice(-300)));
 
 // Explains each skill for the chat card: what it means, its category and which jobs ask for it.
 function explainSkills(list, cat) {
@@ -299,4 +301,4 @@ const parse = (s, d) => { try { return s ? JSON.parse(s) : d; } catch { return d
 const label = (name) => { const s = String(name || '').replace(/-/g, ' '); return s.charAt(0).toUpperCase() + s.slice(1); };
 const hours = (d) => { const n = parseFloat(d); return /week/i.test(d) ? n * 5 : n || 0; };
 
-module.exports = { db, catalog, matchRoles, rankRoles, biasAudit, resumeFilterReasons, PASS_MATCH, RISK_RANK, AI_EXPOSURE, shortestCourse, salaryTop, personBarriers, roleInText, detectJob, daysBetween, today, keywordSkills, parseProfile, parse, label, hours, isHindi, caseCode, explainSkills, jobsOpened };
+module.exports = { db, catalog, matchRoles, rankRoles, biasAudit, resumeFilterReasons, PASS_MATCH, RISK_RANK, AI_EXPOSURE, shortestCourse, salaryTop, personBarriers, roleInText, detectJob, daysBetween, today, keywordSkills, parseProfile, parse, label, hours, isHindi, hinglish, caseCode, explainSkills, jobsOpened };
