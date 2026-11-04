@@ -177,15 +177,13 @@ const AGENT_META = {
   explain: { name: 'Why-Not Explainer', stop: 'Why not?', icon: ic('bulb'), color: 'var(--sapAccentColor1)' },
   shield: { name: 'Job Risk Radar', stop: 'Risk radar', icon: ic('radar'), color: 'var(--sapAccentColor2)' },
   growth: { name: 'After-Hire Companion', stop: 'After hire', icon: ic('sprout'), color: 'var(--sapAccentColor8)' },
-  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('connected'), color: 'var(--sapAccentColor6)' },
+  'sap-mcp': { name: 'SAP MCP', stop: 'SAP', icon: ic('chain-link'), color: 'var(--sapAccentColor6)' },
   chat: { name: 'Setu', stop: 'Setu', icon: ic('bridge'), color: 'var(--sapAccentColor6)' },
-  research: { name: 'Web Research', stop: 'Web', icon: ic('world'), color: 'var(--sapAccentColor7)' },
-  company: { name: 'Company Connect', stop: 'Company', icon: ic('building'), color: 'var(--sapAccentColor5)' },
-  'company-mcp': { name: 'Company MCP', stop: 'MCP', icon: ic('connected'), color: 'var(--sapAccentColor5)' }
+  research: { name: 'Web Research', stop: 'Web', icon: ic('globe'), color: 'var(--sapAccentColor7)' },
+  company: { name: 'Company Connect', stop: 'Company', icon: ic('company-view'), color: 'var(--sapAccentColor5)' },
+  'company-mcp': { name: 'Company MCP', stop: 'MCP', icon: ic('chain-link'), color: 'var(--sapAccentColor5)' }
 };
 // Metro map: the main line is the usual journey, the branch line holds the help you can ask for any time.
-const METRO_MAIN = ['orchestrator', 'skills', 'market', 'pathway', 'matching', 'readiness', 'human'];
-const METRO_BRANCH = ['explain', 'shield', 'growth'];
 // Status tags on the case file: one per agent that has worked on the case.
 const STAMPS = {
   skills: ['Skills verified', 'var(--sapAccentColor5)'], market: ['Market checked', 'var(--sapAccentColor7)'], pathway: ['Plan issued', 'var(--sapAccentColor8)'],
@@ -388,7 +386,7 @@ async function drawConnect() {
   const connected = m?.connected || chat.caseFile?.profile?.company?.connected;
   if (!m || connected || dismissed) { el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = `<div class="cb-ic">${ic('building', 22)}</div>
+  el.innerHTML = `<div class="cb-ic">${ic('company-view', 22)}</div>
     <div class="cb-t"><b>You work at ${esc(m.company)}. Connect your work profile?</b>
       <span>Setu will read your role, skills and projects from ${esc(m.company)}'s data over the Company MCP, and show open roles inside the company. Your employer isn't told.</span></div>
     <div class="cb-a"><button class="btn btn-primary btn-sm" data-intent="company" data-label="Connect my ${esc(m.company)} data">Connect</button>
@@ -405,14 +403,24 @@ function visitedAgents() {
   return v;
 }
 
+// Agent bar: every agent as a button. The ones that answered the last message light up ("working");
+// any agent can be used again with one click.
+const AGENT_BAR = ['skills', 'market', 'pathway', 'matching', 'readiness', 'human', 'explain', 'shield', 'growth', 'research', 'company'];
 function drawMetro() {
   const el = document.getElementById('agentStrip');
   if (!el) return;
   const v = visitedAgents();
-  const stn = (id) => { const a = AGENT_META[id]; return `<div class="stn ${v.has(id) ? 'done' : ''} ${chat.active.includes(id) ? 'now' : ''}" style="--ag:${a.color}" title="${esc(a.name)}">
-      <i class="dot">${a.icon}</i><span>${esc(a.stop)}</span></div>`; };
-  el.innerHTML = `<div class="metro-line main"><b class="line-tag">Your journey</b>${METRO_MAIN.map(stn).join('')}</div>
-    <div class="metro-line branch"><b class="line-tag">Any time</b>${METRO_BRANCH.map(stn).join('')}</div>`;
+  el.innerHTML = `<div class="ab-lead"><span class="ab-setu">${AGENT_META.orchestrator.icon}</span><span><b>Setu</b><small>${chat.busy ? 'is working…' : 'picks the agent, or tap one'}</small></span></div>
+    <div class="ab-list">${AGENT_BAR.filter((id) => AGENT_META[id]).map((id) => { const a = AGENT_META[id]; const on = chat.active.includes(id);
+      return `<button class="ab-chip ${on ? 'on' : v.has(id) ? 'used' : ''}" style="--ag:${a.color}" data-agent="${id}" title="${on ? `${esc(a.name)} answered your last message` : `Ask ${esc(a.name)}`}">
+        <i>${a.icon}</i><span>${esc(a.stop)}</span>${on ? '<em>working</em>' : ''}</button>`; }).join('')}</div>`;
+  el.querySelectorAll('[data-agent]').forEach((b) => b.addEventListener('click', () => {
+    if (chat.busy) return;
+    const id = b.dataset.agent, a = AGENT_META[id];
+    // Web Research needs a question, so it starts one in the message box.
+    if (id === 'research') { const ta = document.getElementById('msg'); ta.value = 'Search the web: '; ta.focus(); return; }
+    sendChat({ intent: id, labelText: `Ask ${a.name}` });
+  }));
 }
 
 function drawMsg(m) {
@@ -557,7 +565,7 @@ function drawCard(c) {
 
   // Company Connect: the work profile read over the Company MCP, and the open roles inside the company.
   if (c.type === 'company') return `<div class="card-in company-card">
-      <div class="row between"><b class="sc-title">${ic('building')} ${esc(c.company)} · work profile</b><span class="badge">via Company MCP</span></div>
+      <div class="row between"><b class="sc-title">${ic('company-view')} ${esc(c.company)} · work profile</b><span class="badge">via Company MCP</span></div>
       <p class="sc-intro">${esc(c.profile.title)} · ${esc(c.profile.department || '')} · ${c.profile.years ?? '?'} years${c.added?.length ? ` · added ${c.added.map((x) => esc(label(x))).join(', ')}` : ''}</p>
       ${c.profile.projects?.length ? `<div class="sk-list">${c.profile.projects.map((p) => `<details class="sk-row"><summary><b>${esc(p.name)}</b></summary><div class="sk-more">${esc(p.detail || '')}</div></details>`).join('')}</div>` : ''}
       ${c.tracks?.length ? `<span class="st-k" style="display:block;margin-top:12px">Open roles inside ${esc(c.company)}</span>
@@ -685,7 +693,7 @@ async function companyPortal() {
     <div class="page-head"><h1>Company data</h1>
       <p>Partner companies share their open roles and employee profiles here. SkillSetu's agents read them through the <b>Company MCP</b>, and only after the employee agrees to connect.</p></div>
     <div class="cp-grid"><section class="side-card" id="cpList"></section><section id="cpDetail"></section></div>
-    <div class="side-card cp-mcp"><b>${ic('connected')} Company MCP</b>
+    <div class="side-card cp-mcp"><b>${ic('chain-link')} Company MCP</b>
       <span>Endpoint <code>POST /company-mcp</code> (header <code>x-api-key</code>) · tools <code>find_company_by_email</code>, <code>get_employee_profile</code>, <code>list_open_postings</code></span></div>
   </div></div>`;
   try {
@@ -793,7 +801,7 @@ async function overview() {
     </div>
     <div class="ov-links">
       <button class="ov-link" data-href="#/counsellor">${ic('employee-approvals', 20)}<b>Review queue</b><span>Skills with evidence, plan, fairness check, AI trace</span></button>
-      <button class="ov-link" data-href="counsellor-fe/index.html">${ic('sap-ui5', 20)}<b>Counsellor Review (SAP Fiori app)</b><span>The same cases as a Fiori Elements list report and object page</span></button>
+      <button class="ov-link" data-href="counsellor-fe/index.html">${ic('sap-box', 20)}<b>Counsellor Review (SAP Fiori app)</b><span>The same cases as a Fiori Elements list report and object page</span></button>
       <button class="ov-link" data-href="#/impact">${ic('chart', 20)}<b>Impact</b><span>People helped and fairness, district by district</span></button>
       <button class="ov-link" data-href="#/jobs">${ic('suitcase', 20)}<b>Jobs</b><span>The role catalog, including open SAP jobs</span></button>
     </div>`;
@@ -1200,9 +1208,9 @@ function loginPicture(portal) {
     </div>`;
   return `<div class="lp-pic" aria-hidden="true">
       <div class="lp-bubble"><ui5-avatar size="XS" initials="P" color-scheme="Accent6"></ui5-avatar><span>“I took 6 years off to raise my kids. I ran the household budget and organised every school event.”</span></div>
-      <div class="lp-flow">${ic('arrow-bottom', 16)} SkillSetu finds</div>
+      <div class="lp-flow">${ic('arrow', 16)} SkillSetu finds</div>
       <div class="lp-chips"><span class="chip good">✓ Budget management</span><span class="chip good">✓ Event planning</span><span class="chip good">✓ Negotiation</span></div>
-      <div class="lp-flow">${ic('arrow-bottom', 16)} and matches</div>
+      <div class="lp-flow">${ic('arrow', 16)} and matches</div>
       <div class="lp-job">${ring(75, 54)}<div><b>Operations Coordinator</b><small>Bengaluru · matched on skills only</small></div><span class="lp-tag good">Low automation risk</span></div>
     </div>`;
 }

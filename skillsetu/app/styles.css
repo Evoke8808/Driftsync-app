@@ -1199,3 +1199,17 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .ba-table th { color: var(--sapContent_LabelColor); font-weight: 600; font-size: 12px; }
 
 .emp-row > summary { gap: 12px; } .emp-proj { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+/* Agent bar: buttons, no connecting line; the agents working on the last message light up */
+#agentStrip.metro { display: flex; align-items: center; gap: 16px; padding: 12px 16px; overflow-x: auto; }
+.ab-lead { display: flex; align-items: center; gap: 10px; flex: none; padding-right: 16px; border-right: 1px solid var(--sapList_BorderColor); }
+.ab-lead b { display: block; font-size: var(--sapFontSize); } .ab-lead small { color: var(--sapContent_LabelColor); font-size: 12px; }
+.ab-setu { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--sapButton_Emphasized_Background); color: #fff; }
+.ab-list { display: flex; gap: 8px; flex-wrap: wrap; }
+.ab-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: var(--sapButton_BorderCornerRadius);
+  border: 1px solid var(--sapButton_BorderColor); background: var(--sapButton_Background); color: var(--sapTextColor); font: inherit; font-size: 13px; cursor: pointer; }
+.ab-chip i { color: var(--ag); display: inline-flex; } .ab-chip:hover { background: var(--sapButton_Hover_Background); }
+.ab-chip.used { border-color: var(--ag); }
+.ab-chip.on { background: var(--sapButton_Selected_Background); border-color: var(--sapButton_Selected_BorderColor); color: var(--sapButton_Selected_TextColor); font-weight: 600; }
+.ab-chip em { font-style: normal; font-size: 11px; color: var(--sapPositiveTextColor); }
+.ab-chip.on::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sapPositiveColor, #30914c); animation: blink 1.4s infinite; }
