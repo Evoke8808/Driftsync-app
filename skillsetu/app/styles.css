@@ -1220,3 +1220,6 @@ h2.grp, .grp { font-size: var(--sapFontHeader4Size); font-weight: 700; }
 .setu-main h2 { margin: 6px 0 4px; }
 .setu-main p { margin: 0; }
 .setu-sub { margin: 8px 0 14px; color: var(--sapContent_LabelColor); font-weight: 600; }
+.ab-group { align-self: center; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--sapContent_LabelColor); margin: 0 2px 0 6px; }
+.ab-group:first-child { margin-left: 0; }
+.setu-sub small { font-weight: 400; font-size: 13px; }

@@ -1,4 +1,4 @@
-# SkillSetu · हुनर का सेतु
+# SkillSetu: skills to jobs
 
 **Skills-first hiring on SAP BTP.** SkillSetu turns a person's life and work story, told in any language, into verified skills with evidence. It then finds fair job matches and a short, free learning plan. AI agents read **live open jobs from SAP SuccessFactors and SAP HANA Cloud over MCP**, and a human counsellor approves every case before anything reaches an employer.
 
@@ -17,9 +17,9 @@
 
 ```
 Person (chat, any language)
-   └─ Setu orchestrator ── picks the right agent ──┐
-        Skills Discovery · Market Intelligence · Learning Pathway · Inclusive Matching
-        Bias Audit · Why-Not · Job Risk Radar · After-Hire · Human-in-the-Loop
+   └─ Setu (main agent, orchestrator) ── picks who helps next ──┐
+        Agents: Skills Discovery · Market Intelligence · Readiness Check · Job Risk Radar · Web Research · Company Connect
+        Tools:  Learning Pathway · Inclusive Matching · Why-Not · Human-in-the-Loop · After-Hire
                                                     │
 Market agent / Job Risk Radar ── MCP client ── SAP MCP server (mcp/sap-mcp.js)
                                                     ├─ SAP SuccessFactors Recruiting (JobRequisition, OData v2)
@@ -98,7 +98,7 @@ HTTP endpoints need the header `x-api-key: skillsetu-demo-key`. There is also a 
 
 ```
 app/            web app (SAP Fiori look, UI5 Web Components)
-srv/agents/     the nine agents and the orchestrator
+srv/agents/     Setu (orchestrator), 6 agents and 5 tools
 srv/integrations/  SuccessFactors connector, SAP MCP client, webhooks
 mcp/            MCP servers (SkillSetu and SAP company data)
 mcp/sap/        SAP data sources, HANA setup, connection check
