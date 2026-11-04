@@ -3,7 +3,7 @@
 // (skills, matches, plan, status), never invents jobs or numbers, and points to the right specialist when one is needed.
 const cds = require('@sap/cds');
 const ai = require('../ai');
-const { db, rankRoles, label, isHindi } = require('./lib');
+const { db, rankRoles, label, isHindi, roleInText } = require('./lib');
 
 const NEXT = {
   skills: ['Tell you more about my work', 'Add more of my story'],
@@ -40,11 +40,16 @@ module.exports = {
     const names = cf.skills.map((s) => s.skill);
     const top = names.length ? rankRoles(names, cat).filter((m) => !String(m.role.ID).startsWith('5a900000-5a90-') && m.role.type !== 'internal').slice(0, 3) : [];
     const target = cf.targetRole_ID && cat.roles.find((r) => r.ID === cf.targetRole_ID);
+    // A job the person asks about: its description and skills, so Setu can explain what the work is.
+    const askedRole = roleInText(message, cat);
+    const askedSkills = askedRole ? cat.roleSkills.filter((rs) => rs.role_ID === askedRole.ID).map((rs) => cat.skills.find((k) => k.ID === rs.skill_ID)?.name).filter(Boolean) : [];
+    const have = new Set(names);
     let recent = [];
     try { recent = await SELECT.from(db().ChatMessages).columns('role', 'text').where({ caseFile_ID: cf.ID }).orderBy('seq desc').limit(6); } catch (e) { /* new case: no history yet */ }
     const context = [
       `Skills on file: ${names.length ? cf.skills.map((s) => `${label(s.skill)} (proof: "${String(s.reason || '').slice(0, 80)}")`).join('; ') : 'none yet'}.`,
       `Top matches: ${top.length ? top.map((m) => `${m.role.title} at ${m.role.company}, ${m.matchPercent}% match, ${m.role.salary}, ${m.role.type}, automation risk ${m.role.automationRisk}`).join('; ') : 'none yet'}.`,
+      (askedRole ? `Job the person is asking about: ${askedRole.title} at ${askedRole.company}, ${askedRole.location}, ${askedRole.salary}, ${askedRole.type}. Description: ${String(askedRole.description || '').slice(0, 400)}. Skills it needs: ${askedSkills.map((n) => `${label(n)}${have.has(n) ? ' (they have it)' : ' (missing)'}`).join(', ') || 'not listed'}. Explain in plain words what this job involves day to day, using the description and skills, then say which of their skills fit and what is missing.\n` : '') +
       `Target job: ${target ? target.title : 'not chosen'}. Learning plan: ${cf.plan ? `${cf.plan.roleTitle}, ${cf.plan.steps?.length || 0} course(s), about ${cf.plan.totalHours} hours` : 'not made'}.`,
       (cf.profile?.company?.connected ? `Connected company data (from the Company MCP): ${cf.profile.company.title} in ${cf.profile.company.department} at ${cf.profile.company.name}, ${cf.profile.company.years} years. Projects: ${(cf.profile.company.projects || []).map((p) => `${p.name}: ${p.detail}`).join(' | ')}. Open roles inside ${cf.profile.company.name}: ${cat.roles.filter((r) => r.type === 'internal' && r.company === cf.profile.company.name).map((r) => r.title).join(', ') || 'none loaded yet'}.` : 'Company data: not connected.') + '\n' +
       `Counsellor review: ${cf.status}. Work preference: ${[cf.prefs?.type, cf.prefs?.location].filter(Boolean).join(', ') || 'not given'}.`,

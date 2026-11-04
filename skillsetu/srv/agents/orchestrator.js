@@ -53,6 +53,9 @@ const INTERNAL = /\b(my company|inside (my|the) company|internal (move|role|tran
 const MULTI = /\b(and then|then|after that|and also|also|and)\b[^.?!]{0,80}\b(make|build|create|send|show|find|check|search|look up|connect|plan|apply|explain|compare)\b|,\s*(then |and )?(make|build|send|show|find|check|search|connect|plan|apply)\b/i;
 const MAX_STEPS = 4;
 
+// Questions about what a job is or involves.
+const WHAT_IS = /\b(what (does|do|would|will) (an?|the)?\s*[a-z ]{2,40}\s(do|does)|what (is|are) (an?|the)\s|what (is|are) [a-z ]{2,40} (job|role|work)|what('s| is) (the )?(job|work|role) of|tell me (more )?about (the |this |that |an? )?[a-z ]{2,40}(job|role)?|explain (the |this |that |an? )?[a-z ]{2,40}(job|role)|what will i (do|be doing)|day in the life|kya kaam (karta|karti|karte)|kya karta hai|kya karti hai)\b|क्या काम|क्या करता|क्या करती/i;
+
 // Greetings, thanks and questions about SkillSetu itself.
 const SMALL_TALK = /^(hi+|hello|hey|hii+|namaste|namaskar|hola|thanks?|thank you|thank u|thx|ty|ok(ay)?|cool|nice|great|awesome|bye|good (morning|afternoon|evening|night)|नमस्ते|धन्यवाद|शुक्रिया)(?![a-z])[\s!.,?🙏😊]*$/i;
 const ABOUT_US = /\b(who are you|what are you|what (can|do) you do|what is skillsetu|what's skillsetu|how does (this|skillsetu|it|setu) work|how do (i|you) use|are you (a|an) (ai|bot|human)|tum kaun|aap kaun)\b|तुम कौन|आप कौन/i;
@@ -66,6 +69,9 @@ async function decide(cf, message, intent, cat) {
   if (intent && BY_ID[intent] && !(needsSkills.includes(intent) && !cf.skills.length)) return { agents: [intent], by: 'button', reason: `Button pressed: ${BY_ID[intent].name}` };
   // Small talk and questions about SkillSetu get a conversational answer from Setu, even before the story.
   if (message && (SMALL_TALK.test(message.trim()) || ABOUT_US.test(message))) return { agents: ['chat'], by: 'rules', reason: 'Small talk or a question about SkillSetu, so Setu answers in chat' };
+  // "What does an Operations Coordinator do?": a question about a job, not a new search. Setu explains it in chat.
+  const asked = cat && message && WHAT_IS.test(message) && roleInText(message, cat);
+  if (asked) return { agents: ['chat'], by: 'rules', roleID: asked.ID, reason: `Asks what the ${asked.title} job involves, so Setu explains it in chat` };
   // Company data: connecting it works before the story too; once connected, internal moves go to Company Connect.
   if (message && (CONNECT.test(message) || (cf.profile?.company?.connected && INTERNAL.test(message)))) return { agents: ['company'], by: 'rules', reason: CONNECT.test(message) ? 'Asks to connect company data, so Company Connect reads it over the Company MCP' : 'Asks about moves inside their own company, so Company Connect checks open internal postings' };
   // Questions about their own work projects: Setu answers in chat from the connected company profile.
