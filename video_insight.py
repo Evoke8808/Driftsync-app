@@ -44,6 +44,8 @@ _YT_SUFFIX = re.compile(r'\s*[-–—|]\s*YouTube(\s+Music)?\s*$', re.IGNORECASE
 # Firefox-style window titles end with the browser name: "Video title - YouTube — Mozilla Firefox"
 _BROWSER_SUFFIX = re.compile(r'\s*[-–—]\s*(Mozilla Firefox|Firefox Developer Edition|Zen Browser|Google Chrome|'
                              r'Brave|Microsoft Edge|Opera|Vivaldi|Chromium)(\s+Private Browsing)?\s*$', re.IGNORECASE)
+# Same browser set platform_bridge uses for AppleScript tab reading (Safari-style window titles)
+_SAFARI_LIKE = platform_bridge._SAFARI_LIKE
 _NOTIF_COUNT = re.compile(r'^\(\d+\)\s*')
 _GENERIC = {"", "youtube", "youtube music", "home", "start page", "new tab", "subscriptions", "history",
             "watch later", "library", "shorts", "you"}
