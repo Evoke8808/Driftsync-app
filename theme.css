@@ -299,3 +299,18 @@ body.ds .coach-sidebar .btn-ghost { color: var(--cs-muted); border-color: var(--
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Desk check: red away timer to the right of the timer box */
+.desk-away {
+    position: absolute; left: calc(100% + 20px); top: 50%; transform: translateY(-50%);
+    width: 210px; padding: 22px 18px; border-radius: 24px; text-align: center;
+    background: rgba(220, 38, 38, .12); border: 1.5px solid #EF4444;
+    animation: desk-away-pulse 1s ease-in-out infinite;
+}
+.desk-away-label { color: #F87171; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+.desk-away-time { color: #EF4444; font-size: 46px; font-weight: 600; line-height: 1.1; margin: 8px 0; }
+.desk-away-note { color: #FCA5A5; font-size: 12px; line-height: 1.4; }
+@keyframes desk-away-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, .45); }
+    50% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+}
