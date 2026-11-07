@@ -32,6 +32,10 @@
                     <label class="label" for="loginPassword">Password</label>
                     <input id="loginPassword" type="password" required autocomplete="current-password" placeholder="Your password" class="input">
                 </div>
+                <label class="flex items-center gap-2 text-sm muted cursor-pointer select-none">
+                    <input id="rememberMe" type="checkbox" checked style="width:16px;height:16px;accent-color:var(--teal);">
+                    Keep me signed in on this computer
+                </label>
                 <button type="submit" class="btn btn-primary btn-block mt-2">Sign in</button>
             </form>
 
@@ -84,13 +88,27 @@
             document.getElementById('alertBox').className = 'hidden mb-5';
         }
 
+        // "Keep me signed in": skip this page when a saved sign-in exists (signing out clears it)
+        let autoTried = false;
+        async function tryAutoLogin() {
+            if (autoTried || !window.pywebview || !window.pywebview.api) return;
+            autoTried = true;
+            try {
+                const res = await window.pywebview.api.auto_login();
+                if (res && res.success) window.location.replace('setup.html');
+            } catch (e) { autoTried = false; }   // bridge not fully ready yet: pywebviewready tries again
+        }
+        window.addEventListener('pywebviewready', tryAutoLogin);
+        setTimeout(tryAutoLogin, 300);
+
         async function handleLogin(event) {
             event.preventDefault();
             hideAlert();
             const identifier = document.getElementById('loginIdentifier').value;
             const password = document.getElementById('loginPassword').value;
             try {
-                const res = await window.pywebview.api.login_user(identifier, password);
+                const remember = document.getElementById('rememberMe').checked;
+                const res = await window.pywebview.api.login_user(identifier, password, remember);
                 if (res.success) {
                     showAlert("Welcome back. Taking you in…", true);
                     setTimeout(() => { window.location.href = 'setup.html'; }, 500);

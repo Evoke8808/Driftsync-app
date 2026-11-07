@@ -15,7 +15,7 @@ import sqlite3
 import json
 import hashlib
 import hmac
-import subprocess
+import secrets
 import threading
 import time
 import re
@@ -50,6 +50,12 @@ try:
     import video_insight
 except ImportError:
     video_insight = None
+
+# --- Desk check: webcam face detection, on this computer only (needs opencv-python) ---
+try:
+    import presence_check
+except Exception:
+    presence_check = None
 
 # --- AI Integration Setup ---
 # Gemini is only an optional backup coach. The old SDK package is deprecated, so the new
@@ -99,12 +105,31 @@ SCAN_INTERVAL_SEC = 1.5     # how often the radar checks the frontmost window
 REARM_COOLDOWN_SEC = 4      # after the friction window closes, wait this long before it can pop again
 DRIFT_DEDUPE_SEC = 60       # staying on the same blocked app re-shows the modal but logs only one drift row
 
+# --- Strictness levels: 1 Corporate (soft reminders), 2 College (intention check), 3 School (strict) ---
+LEVEL_MODES = {"1": "Corporate", "2": "College", "3": "School"}
+MAX_GRACE_MIN = {"1": 10.0, "2": 5.0, "3": 1.0}   # longest break one unlock can give, by level
+LEVEL3_UNLOCKS_PER_BLOCK = 1                       # School: one short break per focus block, then none
+SOFT_REMINDER_REPEAT_SEC = 20 if DEMO_MODE else 60 # Corporate banner/chime: wait this long before reminding again
+FRICTION_STYLES = ("fullscreen", "banner", "chime")
+
+# --- Desk check (webcam): how long you may be out of view before "Are you still there?" ---
+DESK_GRACE_SEC = {"1": 10, "2": 10, "3": 10}   # away this long (any level): chime, timer pauses, drift logged
+DESK_PAUSE_AFTER_SEC = 0                         # no extra wait after the chime
+DESK_CAMERA_LOST_SEC = 8     # camera stops while you're away: stop the alarm after this (timer stays paused)
+DESK_ALARM_MAX_SEC = 300     # nobody came back for 5 minutes: stop ringing (timer stays paused, screen stays red)
+DESK_DARK_LEVEL = 45         # average camera brightness (0-255) below this: "too dark to see you"
+PREFS_PATH = BASE_DIR / "prefs.json"   # small local settings, e.g. which one-time warnings were seen
+DESK_MISSING_SEC = 2.5      # out of view this long: the red "away" timer starts counting
+DESK_INPUT_PRESENT_SEC = 15   # a key press or mouse move this recent also counts as "at the desk"
+DESK_LOG_NAME = "Away from desk"
+
 current_user = None
 timer_is_running = False
 is_friction_active = False
 grace_period_end = None
 friction_window = None
 grace_window = None
+alarm_window = None         # full-screen see-through red layer while the desk check alarm rings
 main_window = None
 api_instance = None
 app_quitting = False
@@ -115,6 +140,11 @@ last_drift = {"app": None, "time": 0.0, "id": None, "front_app": None}
 live_session = None   # last progress the page reported, logged if the window closes mid-session
 last_video_insight = None   # shown on the friction popup once the AI has labelled the video
 smart_state = {"browse_used": 0.0, "last_browse_at": 0.0, "allowed": set(), "overrides": set(), "last_msg": None}
+unlocks_this_block = 0      # breaks unlocked in the current focus block (Level 3 allows one)
+soft_reminder_until = 0.0   # Level 1 banner/chime: no new reminder before this time
+presence_watcher = None     # the webcam reader, created the first time the desk check is used
+# state: off | present | warning | away | unavailable. hold = the timer is paused because you left.
+desk = {"state": "off", "last_seen": 0.0, "hold": False, "warned": False, "logged": False}
 
 active_session_config = {
     "goal": "I am studying data structures",
@@ -125,8 +155,16 @@ active_session_config = {
     "longBreak": 15,
     "blocklist": ["Instagram", "YouTube", "Reddit", "X (Twitter)"],
     "smartYouTube": True,
+    "deskCheck": False,
+    "frictionStyle": "fullscreen",
     "sessionType": "FOCUS"
 }
+
+
+def current_level():
+    """'1', '2' or '3'. Older configs stored '-2' style values, so the sign is ignored."""
+    lvl = str(active_session_config.get("strictness", "2")).strip().lstrip("-")
+    return lvl if lvl in LEVEL_MODES else "2"
 
 
 # --- 1. Secure Password Verification ---
@@ -187,6 +225,13 @@ def init_db():
             c.execute(f"ALTER TABLE drifts ADD COLUMN {col} {ctype}")
     c.execute('CREATE INDEX IF NOT EXISTS idx_periods_user_start ON periods(user_id, started_at)')
     c.execute('CREATE INDEX IF NOT EXISTS idx_drifts_user_time ON drifts(user_id, timestamp)')
+    # "Keep me signed in": only a hash of the token is stored here; the token itself is in prefs.json
+    c.execute('''CREATE TABLE IF NOT EXISTS remember_tokens (
+        token_hash TEXT PRIMARY KEY,
+        user_id INTEGER,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
     conn.commit()
     conn.close()
 
@@ -303,7 +348,7 @@ def goal_matches(typed, target, strictness="2"):
         return True
     if t == g:
         return True
-    if str(strictness) in ("3", "-3"):
+    if str(strictness).lstrip("-") == "3":
         return False
     if len(t) < 0.8 * len(g):
         return False
@@ -329,6 +374,9 @@ def _save_insight(drift_id, info):
 
 
 def reset_smart_state():
+    global unlocks_this_block, soft_reminder_until
+    unlocks_this_block = 0      # each focus block gets its own Level 3 break
+    soft_reminder_until = 0.0
     smart_state.update({"browse_used": 0.0, "last_browse_at": 0.0, "allowed": set(), "last_msg": None})
     # "This is for my studies" choices are kept for the whole app run, not just one block
     last_drift.update({"app": None, "time": 0.0, "id": None})   # a new block never dedupes against the last one
@@ -412,13 +460,16 @@ def _recognise_video(drift_id, raw_info):
 
 def trigger_friction_intercept(detected_item, raw_info="", insight=None):
     """insight: the Smart YouTube label when it is already known, so the popup can show it straight away."""
-    global is_friction_active, last_drift, last_video_insight
+    global is_friction_active, last_video_insight
 
     if is_friction_active:
         return
     now = time.time()
     if now - last_friction_closed_at < REARM_COOLDOWN_SEC:
         return
+    soft_style = soft_reminder_style()
+    if soft_style and now < soft_reminder_until:
+        return   # Level 1 banner/chime already reminded the user a moment ago
 
     is_friction_active = True
     print(f"\n🚨 [DRIFT CAUGHT] Blocked item: '{detected_item}'", flush=True)
@@ -457,6 +508,10 @@ def trigger_friction_intercept(detected_item, raw_info="", insight=None):
     last_drift["time"] = now
     last_drift["front_app"] = (raw_info or "").partition(" | ")[0].strip() or None
 
+    if soft_style and show_soft_reminder(soft_style, detected_item):
+        is_friction_active = False   # nothing is blocked at Level 1: the drift is logged and the user decides
+        return
+
     try:
         # The window is pre-created (hidden) on the main thread in __main__.
         # This background thread must only show/hide it, never create it (macOS UI rule).
@@ -470,6 +525,26 @@ def trigger_friction_intercept(detected_item, raw_info="", insight=None):
     except Exception as e:
         print(f"Error showing shield window: {e}", flush=True)
         is_friction_active = False
+
+
+def soft_reminder_style():
+    """'banner' or 'chime' when Level 1 should remind without a popup, else None."""
+    style = active_session_config.get("frictionStyle", "fullscreen")
+    return style if current_level() == "1" and style in ("banner", "chime") else None
+
+
+def show_soft_reminder(style, detected_item):
+    """Level 1: a system banner or a chime instead of the popup. False means fall back to the popup."""
+    global soft_reminder_until
+    goal = active_session_config.get("goal", "") or "your focus block"
+    if style == "banner":
+        ok = platform_bridge.notify("DriftSync: quick reminder", f"{detected_item} is on your drift list. Back to: {goal}")
+    else:
+        ok = platform_bridge.chime()
+    if ok:
+        soft_reminder_until = time.time() + SOFT_REMINDER_REPEAT_SEC
+        print(f"🔔 [SOFT REMINDER] {style} for '{detected_item}' (Level 1, nothing blocked)", flush=True)
+    return ok
 
 
 def monitor_loop():
@@ -513,6 +588,144 @@ def monitor_loop():
                             continue       # the title only mentions YouTube; check the other blocklist items
                     trigger_friction_intercept(item, raw_window_info, insight)
                     break
+
+
+def get_presence_watcher():
+    global presence_watcher
+    if presence_watcher is None and presence_check is not None:
+        presence_watcher = presence_check.PresenceWatcher()
+    return presence_watcher
+
+
+def _log_away_drift():
+    try:
+        user_id = current_user["id"] if current_user else 0
+        conn = db_connect()
+        conn.execute('INSERT INTO drifts (user_id, timestamp, app_name, unlocked) VALUES (?, ?, ?, ?)',
+                     (user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S"), DESK_LOG_NAME, 0))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Error logging away drift: {e}", flush=True)
+
+
+def show_alarm_overlay(on):
+    """Shows or hides the full-screen red layer (pre-created hidden on the main thread)."""
+    try:
+        if not alarm_window:
+            return
+        if on:
+            alarm_window.show()
+            alarm_window.on_top = True
+            platform_bridge.bring_app_to_front(os.getpid())
+        else:
+            alarm_window.on_top = False
+            alarm_window.hide()
+    except Exception as e:
+        print(f"Alarm overlay error: {e}", flush=True)
+
+
+def desk_loop():
+    """Desk check. During a focus block (and while the timer is paused because you left) the webcam
+    looks for a face once a second. Out of view longer than the grace time for your level: a chime.
+    Still away: the timer pauses (Level 3 keeps it running) and one "Away from desk" drift is logged.
+    The page polls get_desk_status() and does the pausing and resuming."""
+    last_idle_check = 0.0
+    idle_present_at = 0.0
+    while True:
+        time.sleep(1.0)
+        enabled = bool(active_session_config.get("deskCheck")) and presence_check is not None
+        focus_on = timer_is_running and active_session_config.get("sessionType", "FOCUS").upper() == "FOCUS"
+        if not enabled or not (focus_on or desk["hold"]):
+            if desk["state"] == "away":
+                platform_bridge.stop_alarm()
+                show_alarm_overlay(False)
+            desk.update(state="off", warned=False)
+            if not enabled:
+                desk["hold"] = False
+            continue
+
+        watcher = get_presence_watcher()
+        watcher.want(3)
+        now = time.time()
+        if desk["last_seen"] == 0:
+            desk["last_seen"] = now
+
+        camera_working = watcher.camera_on and now - watcher.last_frame_at < 5 and watcher.detector
+        if not camera_working:
+            if desk["hold"]:
+                # paused because you left: a camera hiccup must not resume the timer. But if the camera is
+                # really gone, nothing could ever stop the alarm, so stop it and leave Resume to you.
+                desk.setdefault("lost_since", now)
+                if now - desk["lost_since"] >= DESK_CAMERA_LOST_SEC and desk["state"] == "away":
+                    platform_bridge.stop_alarm()
+                    show_alarm_overlay(False)
+                    desk["state"] = "unavailable"
+                    print("📷 [DESK CHECK] Camera stopped while you were away. Alarm off; press Resume when you're back.", flush=True)
+                continue
+            # No camera, no permission or no detector: never pause anyone because of it
+            desk["state"] = "unavailable" if watcher.error else "present"
+            desk["last_seen"] = now
+            continue
+
+        desk.pop("lost_since", None)
+        seen = watcher.last_face_at
+        if not desk["hold"]:
+            # looking down to write hides your face: your shoulders still in the seat count too
+            # (but once the alarm is ringing, only your face stops it)
+            if watcher.last_body_at > seen and now - watcher.last_face_at > 3 and desk.get("seen_by") != "body":
+                print(f"✍️ [DESK CHECK] Face hidden but you're still in your seat (head down?). "
+                      f"Shoulder match {watcher.body_match or 0:.2f}.", flush=True)
+            seen = max(seen, watcher.last_body_at)
+        desk["seen_by"] = "face" if now - watcher.last_face_at <= 3 else (
+            "body" if not desk["hold"] and now - watcher.last_body_at <= 3 else None)
+        if desk["hold"]:
+            idle_present_at = 0.0   # paused because you left: only your face brings the timer back
+        elif now - seen > 2 and now - last_idle_check > 2:   # no face right now: is someone typing?
+            last_idle_check = now
+            idle = platform_bridge.idle_seconds()
+            if idle is not None and idle < DESK_INPUT_PRESENT_SEC:
+                idle_present_at = now - idle
+        desk["last_seen"] = max(desk["last_seen"], seen, idle_present_at)
+
+        away_for = now - desk["last_seen"]
+        grace = DESK_GRACE_SEC[current_level()]
+        if away_for < DESK_MISSING_SEC:
+            if desk["state"] in ("warning", "away"):
+                platform_bridge.stop_alarm()
+                show_alarm_overlay(False)
+                why = "face seen" if desk.get("seen_by") == "face" else (
+                    "shoulders seen" if desk.get("seen_by") == "body" else "keyboard/mouse used")
+                print(f"👋 [DESK CHECK] Back at the desk ({why}).", flush=True)
+            desk.update(state="present", warned=False, logged=False, alarm_capped=False)
+        elif away_for < grace:
+            desk["state"] = "warning"   # out of view: the red timer counts, the alarm starts at `grace`
+        elif away_for < grace + DESK_PAUSE_AFTER_SEC:
+            desk["state"] = "warning"
+            if not desk["warned"]:
+                desk["warned"] = True
+                print(f"❓ [DESK CHECK] No one seen for {round(away_for)}s. Chime played.", flush=True)
+                platform_bridge.chime()
+                platform_bridge.notify("DriftSync: are you still there?",
+                                       f"This counts as a drift in {DESK_PAUSE_AFTER_SEC} seconds." if current_level() == "3"
+                                       else f"Your focus timer pauses in {DESK_PAUSE_AFTER_SEC} seconds.")
+        else:
+            desk["state"] = "away"
+            if not desk["logged"]:
+                desk["logged"] = True
+                desk["hold"] = True   # every level: time away from the desk never counts as focus
+                _log_away_drift()
+                print("🚶 [DESK CHECK] Away from desk. Timer paused, alarm on until you're back, logged as a drift.", flush=True)
+                platform_bridge.notify("DriftSync: come back to your desk", "Your focus timer is paused until you're back.")
+                show_alarm_overlay(True)
+            # the alarm keeps going until the camera sees you again (or nobody has come back for 5 minutes)
+            if away_for - grace >= DESK_ALARM_MAX_SEC:
+                if not desk.get("alarm_capped"):
+                    desk["alarm_capped"] = True
+                    platform_bridge.stop_alarm()
+                    print("🔕 [DESK CHECK] Away for 5 minutes. Alarm stopped; the timer stays paused.", flush=True)
+            elif not platform_bridge.start_alarm():   # nonstop and getting louder; stops when you're back
+                print("🔔 [DESK CHECK] Alarm sound FAILED.", flush=True)
 
 
 # --- AI reply parsing ---
@@ -665,6 +878,11 @@ class Api:
                 print("⚠️ [PERMISSION REQUIRED] macOS Accessibility popup triggered.", flush=True)
                 return False
 
+        if is_running and session_type == "FOCUS":
+            desk.update(hold=False, last_seen=time.time(), warned=False, logged=False)   # fresh grace on start/resume
+        elif not is_running and not (len(args) > 2 and bool(args[2])):
+            desk["hold"] = False   # stopped or finished (not a pause): no more desk check for this block
+
         if is_running and session_type == "FOCUS" and not timer_is_running and not is_resume:
             reset_smart_state()   # a fresh browsing allowance for every focus block (kept across pauses)
         timer_is_running = is_running
@@ -692,25 +910,40 @@ class Api:
         live_session = {"mode": mode, "planned": planned_sec, "actual": actual_sec, "started": started_at_ms}
         return True
 
-    def verify_friction_goal(self, typed_goal, grace_minutes):
-        global is_friction_active, grace_period_end
-        target_goal = active_session_config.get("goal", "")
-        strictness = str(active_session_config.get("strictness", "2"))
+    def get_friction_rules(self):
+        """What the popup should offer at the current strictness level."""
+        lvl = current_level()
+        left = max(0, LEVEL3_UNLOCKS_PER_BLOCK - unlocks_this_block) if lvl == "3" else None
+        return {"level": lvl, "mode": LEVEL_MODES[lvl], "maxGrace": MAX_GRACE_MIN[lvl],
+                "needsTyping": lvl != "1", "exactMatch": lvl == "3", "unlocksLeft": left}
 
+    def verify_friction_goal(self, typed_goal, grace_minutes):
+        target_goal = active_session_config.get("goal", "")
+        lvl = current_level()
+
+        if lvl == "3" and unlocks_this_block >= LEVEL3_UNLOCKS_PER_BLOCK:
+            return {"success": False, "message": "You've used this block's break. Level 3 allows one per focus block."}
+        if lvl != "1" and not goal_matches(typed_goal, target_goal, lvl):
+            msg = ("Not an exact match. Level 3 needs your intention word for word."
+                   if lvl == "3" else "Goal mismatch. Type your active goal to unlock.")
+            return {"success": False, "message": msg}
+        return self._grant_unlock(grace_minutes)
+
+    def continue_anyway(self, grace_minutes):
+        """Level 1 only: carry on without typing. The drift is still logged and counted in the report."""
+        if current_level() != "1":
+            return {"success": False, "message": "Type your intention to unlock at this level."}
+        return self._grant_unlock(grace_minutes)
+
+    def _grant_unlock(self, grace_minutes):
+        global is_friction_active, grace_period_end, unlocks_this_block
         try:
             val = float(grace_minutes)
         except (ValueError, TypeError):
             val = 2.0
-        val = max(0.0, val)
+        val = min(max(0.0, val), MAX_GRACE_MIN[current_level()])
 
-        if strictness in ["3", "-3"]:
-            val = min(val, 1.0)
-        elif strictness in ["2", "-2"]:
-            val = min(val, 5.0)
-
-        if not goal_matches(typed_goal, target_goal, strictness):
-            return {"success": False, "message": "Goal mismatch. Type your active goal to unlock."}
-
+        unlocks_this_block += 1
         is_friction_active = False
         if val > 0:
             grace_period_end = datetime.now() + timedelta(minutes=val)
@@ -771,6 +1004,95 @@ class Api:
         """The friction popup polls this to show what YouTube video was recognised."""
         return last_video_insight
 
+    def get_desk_status(self, from_timer=False):
+        """The timer page polls this every second while the desk check is on."""
+        level = current_level()
+        grace = DESK_GRACE_SEC[level]
+        away_for = max(0, int(time.time() - desk["last_seen"])) if desk["state"] in ("warning", "away") else 0
+        watcher = presence_watcher
+        return {
+            "enabled": bool(active_session_config.get("deskCheck")) and presence_check is not None,
+            "state": desk["state"],
+            "hold": desk["hold"],
+            "seenBy": desk.get("seen_by"),
+            "awayFor": away_for,
+            "pauseIn": max(0, grace + DESK_PAUSE_AFTER_SEC - away_for) if desk["state"] == "warning" else None,
+            "keepsRunning": False,
+            "tooDark": bool(watcher and watcher.camera_on and watcher.brightness is not None
+                            and watcher.brightness < DESK_DARK_LEVEL),
+            # only the timer page takes the end request (the red screen polls this too)
+            "endRequested": desk.pop("end_requested", False) if from_timer else False,
+            "error": (watcher.error if watcher else None) if desk["state"] == "unavailable" else None,
+        }
+
+    def request_camera_access(self):
+        """Setup calls this when Desk check is turned on: shows the OS camera prompt (OK / Cancel)."""
+        if presence_check is None:
+            return {"ok": False, "error": "OpenCV is not installed. Run: pip3 install -r requirements.txt"}
+        ok = platform_bridge.request_camera_access()
+        if ok and presence_watcher:
+            presence_watcher.error = None
+        print(f"[DESK CHECK] Camera access {'allowed' if ok else 'not allowed'}.", flush=True)
+        return {"ok": ok, "error": None if ok else "Camera not allowed, so the desk check stays off."}
+
+    def desk_end_block(self):
+        """The red screen's "End this focus block" button: a way out when the camera can't see you
+        (dark room, camera covered). Stops the alarm; the timer page ends the block as Stopped Early."""
+        desk.update(end_requested=True, hold=False, state="off")   # so the desk check doesn't restart the alarm
+        platform_bridge.stop_alarm()
+        show_alarm_overlay(False)
+        print("⏹ [DESK CHECK] Focus block ended from the alarm screen.", flush=True)
+        return True
+
+    # --- warnings ---
+    def get_power_state(self):
+        return {"onBattery": platform_bridge.on_battery()}
+
+    def get_camera_conflicts(self):
+        """Open apps that may hold the camera, so the desk check can't see you."""
+        return platform_bridge.camera_apps_running()
+
+    def get_pref(self, key):
+        try:
+            return json.loads(PREFS_PATH.read_text(encoding="utf-8")).get(str(key))
+        except Exception:
+            return None
+
+    def set_pref(self, key, value):
+        try:
+            prefs = json.loads(PREFS_PATH.read_text(encoding="utf-8")) if PREFS_PATH.exists() else {}
+        except Exception:
+            prefs = {}
+        prefs[str(key)] = value
+        try:
+            PREFS_PATH.write_text(json.dumps(prefs, indent=2), encoding="utf-8")
+        except Exception as e:
+            print(f"Error saving prefs: {e}", flush=True)
+        return True
+
+    def clear_progress(self):
+        """The timer page calls this when no block is in progress (reset under a minute, new block loaded)."""
+        global live_session
+        live_session = None
+        return True
+
+    def get_desk_preview(self):
+        """Setup's "Test camera": keeps the camera on for 3 more seconds and returns the latest frame
+        (mirrored, with a box around each face). The page calls it a few times a second."""
+        if presence_check is None:
+            return {"ok": False, "error": "OpenCV is not installed. Run: pip install -r requirements.txt"}
+        watcher = get_presence_watcher()
+        if not watcher.want(3, preview=True):
+            return {"ok": False, "error": watcher.error}
+        return {
+            "ok": True,
+            "image": watcher.preview_data_url(),
+            "faces": watcher.faces_now if watcher.camera_on else 0,
+            "detector": watcher.detector,
+            "tooDark": bool(watcher.camera_on and watcher.brightness is not None and watcher.brightness < DESK_DARK_LEVEL),
+            "error": watcher.error if not watcher.camera_on else None,
+        }
+
     def get_grace_remaining(self):
         if not grace_period_end:
             return 0
@@ -826,7 +1148,7 @@ class Api:
         except sqlite3.IntegrityError:
             return {"success": False, "message": "Username or Email already registered."}
 
-    def login_user(self, identifier, password):
+    def login_user(self, identifier, password, remember=False):
         global current_user
         identifier = (identifier or "").strip().lower()
         conn = db_connect()
@@ -839,13 +1161,65 @@ class Api:
         user_id, u_name, stored_hash, stored_salt = row
         if verify_password(stored_hash, stored_salt, password or ""):
             current_user = {"id": user_id, "username": u_name}
+            if remember:
+                self._remember(user_id)
             return {"success": True, "message": "Login successful!", "username": u_name}
         return {"success": False, "message": "Invalid credentials."}
 
     def logout_user(self):
         global current_user
         current_user = None
+        self._forget()   # signing out also turns off "Keep me signed in" on this computer
         return True
+
+    # --- Keep me signed in ---
+    @staticmethod
+    def _token_hash(token):
+        return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+    def _remember(self, user_id):
+        token = secrets.token_hex(32)
+        try:
+            conn = db_connect()
+            conn.execute("DELETE FROM remember_tokens WHERE user_id = ?", (user_id,))   # one device, one token
+            conn.execute("INSERT INTO remember_tokens (token_hash, user_id) VALUES (?, ?)", (self._token_hash(token), user_id))
+            conn.commit()
+            conn.close()
+            self.set_pref("rememberToken", token)
+        except Exception as e:
+            print(f"Error saving sign-in: {e}", flush=True)
+
+    def _forget(self):
+        token = self.get_pref("rememberToken")
+        if token:
+            try:
+                conn = db_connect()
+                conn.execute("DELETE FROM remember_tokens WHERE token_hash = ?", (self._token_hash(str(token)),))
+                conn.commit()
+                conn.close()
+            except Exception as e:
+                print(f"Error clearing sign-in: {e}", flush=True)
+        self.set_pref("rememberToken", None)
+
+    def auto_login(self):
+        """The login page calls this on open: signs you straight in if "Keep me signed in" was ticked."""
+        global current_user
+        token = self.get_pref("rememberToken")
+        if not token:
+            return {"success": False}
+        try:
+            conn = db_connect()
+            row = conn.execute("""SELECT u.id, u.username FROM remember_tokens t JOIN users u ON u.id = t.user_id
+                                  WHERE t.token_hash = ?""", (self._token_hash(str(token)),)).fetchone()
+            conn.close()
+        except Exception:
+            row = None
+        if not row:
+            self.set_pref("rememberToken", None)
+            return {"success": False}
+        current_user = {"id": row[0], "username": row[1]}
+        print(f"🔑 [LOGIN] Signed in automatically as {row[1]}.", flush=True)
+        return {"success": True, "username": row[1]}
 
     def get_current_user(self):
         return current_user or {"username": "Guest", "id": 0}
@@ -857,6 +1231,16 @@ class Api:
         config.pop("demoMode", None)
         if "smartYouTube" in config:
             config["smartYouTube"] = bool(config["smartYouTube"])
+        if "deskCheck" in config:
+            config["deskCheck"] = bool(config["deskCheck"])
+        if "strictness" in config:
+            lvl = str(config["strictness"]).strip().lstrip("-")
+            config["strictness"] = lvl if lvl in LEVEL_MODES else "2"
+            config["mode"] = LEVEL_MODES[config["strictness"]]   # the level name always matches its number
+        lvl = config.get("strictness", current_level())
+        style = config.get("frictionStyle", active_session_config.get("frictionStyle", "fullscreen"))
+        # banner and chime don't block anything, so they are only allowed at Level 1
+        config["frictionStyle"] = style if style in FRICTION_STYLES and (lvl == "1" or style == "fullscreen") else "fullscreen"
         if "blocklist" in config:
             config["blocklist"] = split_blocklist(config["blocklist"])
         # minutes; demo mode allows fractions (0.5 = 30 seconds)
@@ -1146,6 +1530,22 @@ def _keep_alive_on_close(win_getter, on_hide=None):
     return handler
 
 
+def _confirm_quit():
+    """Closing the main window during a focus block: ask first (it ends the block as Stopped Early)."""
+    if app_quitting:
+        return True
+    # breaks don't count: quitting during a break needs no warning
+    focus_running = timer_is_running and active_session_config.get("sessionType", "FOCUS").upper() == "FOCUS"
+    focus_paused = bool(live_session) and str(live_session.get("mode", "")).upper() == "FOCUS"
+    in_block = focus_running or focus_paused or desk["hold"]
+    if not in_block:
+        return True
+    ok = platform_bridge.confirm("Quit DriftSync?",
+                                 "A focus block is in progress. Quitting now ends it and logs it as Stopped Early.",
+                                 ok="Quit", cancel="Keep focusing")
+    return bool(ok)
+
+
 def _on_main_closed():
     global app_quitting, timer_is_running
     app_quitting = True
@@ -1156,7 +1556,10 @@ def _on_main_closed():
                                      live_session["actual"], live_session["started"])
         except Exception as e:
             print(f"Error logging session on close: {e}", flush=True)
-    for win in (friction_window, grace_window):
+    if presence_watcher:
+        presence_watcher.stop()   # release the camera
+    platform_bridge.stop_alarm()
+    for win in (friction_window, grace_window, alarm_window):
         try:
             if win:
                 win.destroy()
@@ -1172,6 +1575,7 @@ if __name__ == '__main__':
 
     monitor_thread = threading.Thread(target=monitor_loop, daemon=True)
     monitor_thread.start()
+    threading.Thread(target=desk_loop, daemon=True).start()
 
     main_window = webview.create_window(
         'DriftSync',
@@ -1207,9 +1611,32 @@ if __name__ == '__main__':
         js_api=api_instance
     )
 
+    # Full-screen see-through red layer for the desk check alarm (pre-created, hidden)
+    try:
+        screen = webview.screens[0] if getattr(webview, "screens", None) else None
+        alarm_window = webview.create_window(
+            'DriftSync - Come back',
+            (BASE_DIR / "alarm.html").as_uri(),
+            x=0, y=0,
+            width=int(screen.width) if screen else 1440,
+            height=int(screen.height) if screen else 900,
+            frameless=True,
+            transparent=True,
+            resizable=False,
+            hidden=True,
+            on_top=True,
+            js_api=api_instance
+        )
+    except Exception as e:
+        alarm_window = None
+        print(f"[DESK CHECK] Full-screen alarm layer not available: {e}", flush=True)
+
     try:
         friction_window.events.closing += _keep_alive_on_close(lambda: friction_window, api_instance.close_friction_window)
         grace_window.events.closing += _keep_alive_on_close(lambda: grace_window)
+        if alarm_window:
+            alarm_window.events.closing += _keep_alive_on_close(lambda: alarm_window)
+        main_window.events.closing += _confirm_quit
         main_window.events.closed += _on_main_closed
     except Exception as e:
         print(f"[WINDOW EVENTS] not available in this pywebview version: {e}", flush=True)

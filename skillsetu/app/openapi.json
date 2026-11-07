@@ -1,0 +1,1331 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "SkillSetu Integration API",
+    "version": "1.0.0",
+    "description": "Connect SkillSetu to HR systems, job portals and NGO case tools.\n\n**Auth:** send `x-api-key` on every call. Demo key: `skillsetu-demo-key` (set `SKILLSETU_API_KEY` to change it; on BTP use XSUAA).\n\n**Typical flow:** createCase → (addToCase) → getMatches / getLearningPlan / getReadiness → submitForReview → a counsellor approves → webhook `case.approved` → pushToSuccessFactors.\n\nEvery number is computed by code from the catalog, never invented by the AI. Employers only ever see the case code and skills."
+  },
+  "servers": [
+    {
+      "url": "/integration/v1"
+    }
+  ],
+  "security": [
+    {
+      "ApiKey": []
+    }
+  ],
+  "tags": [
+    {
+      "name": "Cases",
+      "description": "Turn a story into evidence-backed skills"
+    },
+    {
+      "name": "Matching",
+      "description": "Jobs, learning plans, readiness"
+    },
+    {
+      "name": "Fairness",
+      "description": "Four-fifths-rule audits"
+    },
+    {
+      "name": "Human review & SuccessFactors"
+    },
+    {
+      "name": "Webhooks"
+    },
+    {
+      "name": "Catalog",
+      "description": "Read-only sync"
+    }
+  ],
+  "paths": {
+    "/createCase": {
+      "post": {
+        "tags": [
+          "Cases"
+        ],
+        "summary": "Create a case from a story",
+        "description": "Any language (English, Hindi, Hinglish, Tamil…). Runs Skills Discovery and returns skills with evidence plus a follow-up question.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "story": {
+                    "type": "string",
+                    "example": "I ran a tiffin service for 6 years, kept accounts and managed 2 helpers"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Optional",
+                    "example": "Lakshmi"
+                  },
+                  "externalRef": {
+                    "type": "string",
+                    "description": "Your own ID",
+                    "example": "NGO-4411"
+                  },
+                  "district": {
+                    "type": "string",
+                    "description": "Optional, for impact reporting",
+                    "example": "Jaipur"
+                  }
+                },
+                "required": [
+                  "story"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/addToCase": {
+      "post": {
+        "tags": [
+          "Cases"
+        ],
+        "summary": "Add to a story / answer the follow-up",
+        "description": "Finds new skills in the new text.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "caseID": {
+                    "type": "string"
+                  },
+                  "text": {
+                    "type": "string",
+                    "example": "I also organised the Diwali mela for 300 people"
+                  }
+                },
+                "required": [
+                  "caseID",
+                  "text"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getCase": {
+      "get": {
+        "tags": [
+          "Cases"
+        ],
+        "summary": "Read a case",
+        "description": "Skills, plan and counsellor status.",
+        "parameters": [
+          {
+            "name": "caseID",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case UUID from createCase"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getMatches": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "Skills-first job matches",
+        "description": "Ranked by share of required skills. Never uses name, age, gender, college or gaps.",
+        "parameters": [
+          {
+            "name": "caseID",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case UUID from createCase"
+          },
+          {
+            "name": "partTime",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only part-time or remote"
+          },
+          {
+            "name": "remote",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Only remote"
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "City or remote"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JobMatch"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getLearningPlan": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "Shortest free course plan",
+        "description": "Default role: the best match. Courses from SAP Learning Hub, SWAYAM and NPTEL.",
+        "parameters": [
+          {
+            "name": "caseID",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case UUID from createCase"
+          },
+          {
+            "name": "roleID",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Target role"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LearningPlan"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed in this state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getReadiness": {
+      "get": {
+        "tags": [
+          "Matching"
+        ],
+        "summary": "Bias & readiness report",
+        "description": "Résumé-filter barriers for this person, coaching tips, and the four-fifths audit for their target role.",
+        "parameters": [
+          {
+            "name": "caseID",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Case UUID from createCase"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReadinessReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed in this state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/getFairnessAudit": {
+      "get": {
+        "tags": [
+          "Fairness"
+        ],
+        "summary": "Four-fifths audit for a role",
+        "description": "Selection rate and adverse impact ratio per group: résumé filter vs skills-first.",
+        "parameters": [
+          {
+            "name": "roleID",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "From /Roles"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FairnessReport"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submitForReview": {
+      "post": {
+        "tags": [
+          "Human review & SuccessFactors"
+        ],
+        "summary": "Send a case to a human counsellor",
+        "description": "Nothing reaches an employer before a counsellor approves.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "caseID": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "caseID"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CaseSummary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pushToSuccessFactors": {
+      "post": {
+        "tags": [
+          "Human review & SuccessFactors"
+        ],
+        "summary": "Hand an approved candidate to SAP SuccessFactors Recruiting",
+        "description": "Creates or updates Candidate and JobApplication (match %, fairness-checked flag). Name is not shared. Returns 409 until a counsellor approves.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "caseID": {
+                    "type": "string"
+                  },
+                  "roleID": {
+                    "type": "string",
+                    "description": "Optional; default is the plan’s role"
+                  }
+                },
+                "required": [
+                  "caseID"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SFPushResult"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Not allowed in this state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/registerWebhook": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Register a webhook",
+        "description": "Events: case.approved, case.changes_requested, case.disputed, case.pushed, case.hired, case.alert (better match, job-risk warning or check-in), case.unfair_rejection. Each POST is signed: X-SkillSetu-Signature: sha256=<HMAC of raw body with your secret>.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "example": "https://hr.example.com/hooks/skillsetu"
+                  },
+                  "events": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Leave empty for all events"
+                  }
+                },
+                "required": [
+                  "url"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad input",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/listWebhooks": {
+      "get": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "List webhooks",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Webhook"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/deleteWebhook": {
+      "post": {
+        "tags": [
+          "Webhooks"
+        ],
+        "summary": "Delete a webhook",
+        "description": "",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Roles": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Job roles",
+        "description": "Supports $select, $top, $filter.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ID": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "company": {
+                        "type": "string"
+                      },
+                      "location": {
+                        "type": "string"
+                      },
+                      "salary": {
+                        "type": "string"
+                      },
+                      "type": {
+                        "type": "string"
+                      },
+                      "demand": {
+                        "type": "string"
+                      },
+                      "automationRisk": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Skills": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Skills",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ID": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "category": {
+                        "type": "string"
+                      },
+                      "description": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/Courses": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "summary": "Courses",
+        "description": "",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "ID": {
+                        "type": "string"
+                      },
+                      "title": {
+                        "type": "string"
+                      },
+                      "provider": {
+                        "type": "string"
+                      },
+                      "url": {
+                        "type": "string"
+                      },
+                      "duration": {
+                        "type": "string"
+                      },
+                      "level": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or wrong x-api-key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKey": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key"
+      }
+    },
+    "schemas": {
+      "SkillEvidence": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string",
+            "description": "Skill name",
+            "example": "budget-management"
+          },
+          "label": {
+            "type": "string",
+            "description": "Readable name",
+            "example": "Budget management"
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Words from the story that prove it",
+            "example": "kept accounts in a notebook"
+          },
+          "foundBy": {
+            "type": "string",
+            "description": "ai or keywords",
+            "example": "ai"
+          }
+        }
+      },
+      "CaseSummary": {
+        "type": "object",
+        "properties": {
+          "caseID": {
+            "type": "string",
+            "description": "Case UUID"
+          },
+          "code": {
+            "type": "string",
+            "description": "Short ID shown to people and employers",
+            "example": "SS-4F2A1C"
+          },
+          "name": {
+            "type": "string",
+            "description": "Optional first name (never sent to employers)",
+            "example": "Lakshmi"
+          },
+          "status": {
+            "type": "string",
+            "description": "active | sent | approved | changes",
+            "example": "active"
+          },
+          "externalRef": {
+            "type": "string",
+            "description": "Your own reference",
+            "example": "NGO-4411"
+          },
+          "skills": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SkillEvidence"
+            }
+          },
+          "targetRole": {
+            "type": "string",
+            "example": "Event Planner"
+          },
+          "plan": {
+            "type": "object",
+            "properties": {
+              "role": {
+                "type": "string"
+              },
+              "courses": {
+                "type": "integer"
+              },
+              "hours": {
+                "type": "integer"
+              },
+              "weeks": {
+                "type": "integer"
+              }
+            }
+          },
+          "messages": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What the agents replied (follow-up question in the person’s language)"
+          }
+        }
+      },
+      "JobMatch": {
+        "type": "object",
+        "properties": {
+          "roleID": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string",
+            "example": "Self-Help Group Coordinator"
+          },
+          "company": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "salary": {
+            "type": "string",
+            "example": "₹2.5-3.5 LPA"
+          },
+          "type": {
+            "type": "string",
+            "example": "part-time"
+          },
+          "matchPercent": {
+            "type": "integer",
+            "example": 75
+          },
+          "matchedSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "missingSkills": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "demand": {
+            "type": "string",
+            "example": "High"
+          },
+          "automationRisk": {
+            "type": "string",
+            "example": "Low"
+          }
+        }
+      },
+      "PlanStep": {
+        "type": "object",
+        "properties": {
+          "skill": {
+            "type": "string"
+          },
+          "course": {
+            "type": "string"
+          },
+          "provider": {
+            "type": "string",
+            "example": "SWAYAM"
+          },
+          "url": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "string",
+            "example": "4 hours"
+          },
+          "level": {
+            "type": "string"
+          }
+        }
+      },
+      "LearningPlan": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "matchToday": {
+            "type": "integer"
+          },
+          "totalHours": {
+            "type": "integer"
+          },
+          "weeks": {
+            "type": "integer"
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            }
+          }
+        }
+      },
+      "GroupResult": {
+        "type": "object",
+        "properties": {
+          "group": {
+            "type": "string",
+            "example": "Women returning after a break"
+          },
+          "applicants": {
+            "type": "integer"
+          },
+          "resumeFilterRate": {
+            "type": "number"
+          },
+          "resumeFilterAIR": {
+            "type": "number",
+            "example": 0.2
+          },
+          "skillsFirstRate": {
+            "type": "number"
+          },
+          "skillsFirstAIR": {
+            "type": "number",
+            "example": 1
+          }
+        }
+      },
+      "FairnessReport": {
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "threshold": {
+            "type": "number",
+            "example": 0.8
+          },
+          "resumeFilterFailingGroups": {
+            "type": "integer",
+            "example": 6
+          },
+          "skillsFirstFailingGroups": {
+            "type": "integer",
+            "example": 0
+          },
+          "qualified": {
+            "type": "integer"
+          },
+          "qualifiedRejectedByResumeFilter": {
+            "type": "integer"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GroupResult"
+            }
+          }
+        }
+      },
+      "ReadinessReport": {
+        "type": "object",
+        "properties": {
+          "caseID": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "matchPercent": {
+            "type": "integer"
+          },
+          "filterBarriers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "What a typical résumé filter would reject this person for"
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "audit": {
+            "$ref": "#/components/schemas/FairnessReport"
+          }
+        }
+      },
+      "SFPushResult": {
+        "type": "object",
+        "properties": {
+          "caseID": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "jobReqId": {
+            "type": "string"
+          },
+          "candidateId": {
+            "type": "string"
+          },
+          "applicationId": {
+            "type": "string"
+          },
+          "matchPercent": {
+            "type": "integer"
+          },
+          "status": {
+            "type": "string",
+            "example": "sent"
+          },
+          "target": {
+            "type": "string",
+            "example": "SAP SuccessFactors (demo mock)"
+          }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "secret": {
+            "type": "string",
+            "description": "Returned once at registration. Verify X-SkillSetu-Signature = sha256=HMAC_SHA256(secret, rawBody)"
+          },
+          "lastStatus": {
+            "type": "string"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "example": "404"
+              },
+              "message": {
+                "type": "string",
+                "example": "Case not found"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

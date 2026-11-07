@@ -15,7 +15,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--coral)" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
     </div>
     <div>
-      <h1 class="serif text-[22px] leading-tight">Let's check in</h1>
+      <h1 id="frictionTitle" class="serif text-[22px] leading-tight">Let's check in</h1>
       <p id="frictionReason" class="text-xs muted">You opened a blocked app during a focus block.</p>
     </div>
   </div>
@@ -29,26 +29,26 @@
   </div>
 
   <form onsubmit="verifyGoal(event)" class="space-y-5">
-    <div>
-      <label class="label" for="goalInput">Type it to unlock a short break</label>
+    <div id="goalBlock">
+      <label id="goalLabel" class="label" for="goalInput">Type it to unlock a short break</label>
       <input id="goalInput" type="text" required autocomplete="off" class="input" placeholder="Type your intention…">
     </div>
 
-    <div>
+    <div id="graceBlock">
       <div class="flex justify-between items-center mb-2">
         <span class="label" style="margin:0">Break length</span>
         <span id="graceLabel" class="text-xs text-sand font-semibold">2 Minutes</span>
       </div>
       <div id="graceSeg" class="seg grid-cols-4">
-        <button type="button" onclick="setGrace(1, this)" class="grace-btn">1m</button>
-        <button type="button" onclick="setGrace(2, this)" class="grace-btn is-selected">2m</button>
-        <button type="button" onclick="setGrace(5, this)" class="grace-btn">5m</button>
-        <button type="button" onclick="setGrace(10, this)" class="grace-btn">10m</button>
+        <button type="button" onclick="setGrace(1, this)" data-min="1" class="grace-btn">1m</button>
+        <button type="button" onclick="setGrace(2, this)" data-min="2" class="grace-btn is-selected">2m</button>
+        <button type="button" onclick="setGrace(5, this)" data-min="5" class="grace-btn">5m</button>
+        <button type="button" onclick="setGrace(10, this)" data-min="10" class="grace-btn">10m</button>
       </div>
     </div>
 
     <div class="grid grid-cols-2 gap-3 pt-1">
-      <button type="button" onclick="stayOnTask()" class="btn btn-primary">Back to focus</button>
+      <button type="button" id="stayBtn" onclick="stayOnTask()" class="btn btn-primary">Back to focus</button>
       <button type="submit" id="unlockBtn" class="btn btn-secondary">Unlock break</button>
     </div>
   </form>
@@ -59,6 +59,47 @@
 <script>
 const $ = id => document.getElementById(id);
 let requestedGrace = 2;
+let rules = { level: "2", maxGrace: 5, needsTyping: true, exactMatch: false, unlocksLeft: null };
+const UNLOCK_LABEL = { "1": "Continue anyway", "2": "Unlock break", "3": "Unlock 1-min break" };
+
+// The popup changes with the strictness level chosen in Setup
+let rulesTries = 0;
+async function applyRules() {
+  try { rules = Object.assign(rules, await window.pywebview.api.get_friction_rules()); }
+  catch (e) { if (++rulesTries < 10) setTimeout(applyRules, 300); return; }   // bridge not ready yet
+  const lvl = String(rules.level);
+  $('unlockBtn').textContent = UNLOCK_LABEL[lvl] || 'Unlock break';
+
+  // Break lengths longer than this level allows are hidden instead of being cut short silently
+  const btns = Array.from(document.querySelectorAll('.grace-btn[data-min]'));
+  btns.forEach(b => b.classList.toggle('hidden', +b.dataset.min > rules.maxGrace));
+  const shown = btns.filter(b => !b.classList.contains('hidden'));
+  $('graceSeg').classList.remove('grid-cols-4', 'grid-cols-5', 'grid-cols-1', 'grid-cols-3');
+  $('graceSeg').classList.add(`grid-cols-${shown.length + (document.getElementById('grace10') ? 1 : 0)}`);
+  if (!document.getElementById('grace10')) {
+    const pick = lvl === "1" ? shown.find(b => b.dataset.min === "5") : (shown.find(b => b.dataset.min === "2") || shown[shown.length - 1]);
+    if (pick) setGrace(+pick.dataset.min, pick);
+  }
+
+  if (lvl === "1") {
+    $('frictionTitle').textContent = 'Quick reminder';
+    $('frictionReason').textContent = 'This app is on your drift list. Nothing is locked at Level 1, but it shows in your report.';
+    $('goalBlock').classList.add('hidden');
+    $('goalInput').required = false;
+  } else if (lvl === "3") {
+    $('frictionTitle').textContent = 'Strict focus';
+    $('frictionReason').textContent = 'Level 3: this app is blocked until the focus block ends.';
+    $('goalLabel').textContent = 'Type it exactly to unlock one 1-minute break';
+    if (rules.unlocksLeft === 0) {
+      $('goalBlock').classList.add('hidden');
+      $('graceBlock').classList.add('hidden');
+      $('goalInput').required = false;
+      $('unlockBtn').classList.add('hidden');
+      $('stayBtn').parentElement.classList.replace('grid-cols-2', 'grid-cols-1');
+      showFeedback(false, "You've used this block's one break. Go back to focus; the timer is still running.");
+    }
+  }
+}
 
 function setGrace(mins, btnElement) {
   requestedGrace = mins;
@@ -141,7 +182,9 @@ async function verifyGoal(e) {
   btn.textContent = 'Checking…';
 
   try {
-    const res = await window.pywebview.api.verify_friction_goal(typed, requestedGrace);
+    const res = String(rules.level) === "1"
+      ? await window.pywebview.api.continue_anyway(requestedGrace)
+      : await window.pywebview.api.verify_friction_goal(typed, requestedGrace);
     if (res.success) {
       const g = (typeof res.approved_grace === 'number') ? res.approved_grace : requestedGrace;
       const label = g >= 1 ? `${g}-minute` : `${Math.round(g * 60)}-second`;
@@ -154,12 +197,12 @@ async function verifyGoal(e) {
     } else {
       showFeedback(false, res.message);
       btn.disabled = false;
-      btn.textContent = 'Unlock break';
+      btn.textContent = UNLOCK_LABEL[String(rules.level)] || 'Unlock break';
     }
   } catch (err) {
     showFeedback(false, "Couldn't reach the app backend.");
     btn.disabled = false;
-    btn.textContent = 'Unlock break';
+    btn.textContent = UNLOCK_LABEL[String(rules.level)] || 'Unlock break';
   }
 }
 
@@ -185,7 +228,7 @@ let booted = false;
 function boot() {
   if (booted) return;
   booted = true;
-  loadGoal(); applyDemoMode(); loadVideoInsight();
+  loadGoal(); applyDemoMode().then(applyRules); loadVideoInsight();
 }
 window.addEventListener('pywebviewready', boot);
 setTimeout(boot, 300);

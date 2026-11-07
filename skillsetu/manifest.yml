@@ -1,0 +1,16 @@
+# Deploy SkillSetu to SAP BTP, Cloud Foundry:  cf push
+# Keys are not stored here. Set them once with cf set-env (see README), then cf restage skillsetu.
+applications:
+  - name: skillsetu
+    routes:
+      - route: skillsetu.cfapps.us10-001.hana.ondemand.com
+      - route: skillsetu-persistent-gerenuk-qt.cfapps.us10-001.hana.ondemand.com
+    path: .
+    memory: 512M
+    disk_quota: 1G
+    instances: 1
+    buildpacks:
+      - nodejs_buildpack
+    command: npm run start:cf
+    env:
+      NODE_ENV: production

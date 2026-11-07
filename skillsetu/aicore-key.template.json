@@ -1,0 +1,8 @@
+{
+  "clientid": "PASTE clientid HERE",
+  "clientsecret": "PASTE clientsecret HERE",
+  "url": "PASTE url HERE (looks like https://....authentication.....hana.ondemand.com)",
+  "serviceurls": {
+    "AI_API_URL": "PASTE AI_API_URL HERE (looks like https://api.ai.prod.eu-central-1.aws.ml.hana.ondemand.com)"
+  }
+}

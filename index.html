@@ -6,8 +6,55 @@
     <title>DriftSync - Focus</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="theme.css">
+    <script src="dialog.js"></script>
 </head>
-<body class="ds flex flex-col px-6 md:px-10 py-6">
+<body class="ds">
+<div class="app-layout">
+
+    <!-- AI Coach sidebar (docked left, pushes the page content) -->
+    <aside id="aiModal" class="coach-sidebar hidden" aria-label="AI Coach">
+        <div class="cs-titlebar">
+            <button class="cs-title" type="button" tabindex="-1">AI Coach
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+            </button>
+            <button onclick="closeAiModal()" class="cs-close" title="Close (Esc)" aria-label="Close coach">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+        </div>
+
+        <div class="cs-model">
+            <div class="cs-model-row">
+                <div class="coach-avatar"><span></span></div>
+                <div>
+                    <div class="cs-model-name">Your focus coach</div>
+                    <div class="cs-model-sub">Tell me what's getting in the way. No judgement.</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="chatMessages" class="cs-messages space-y-4">
+            <div class="cs-greeting fade-up">Hey, I'm here.</div>
+            <div class="flex gap-3 items-end fade-up">
+                <div class="coach-avatar"><span></span></div>
+                <div class="bubble bubble-ai">
+                    Hey, I'm here. What's getting in the way of studying today? Procrastination, stress, your phone, anything goes.
+                </div>
+            </div>
+        </div>
+
+        <div class="cs-input-wrap">
+            <div class="cs-input-box">
+                <input id="chatInput" type="text" placeholder="Describe what's stopping you…" autocomplete="off"
+                       onkeydown="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="cs-send" title="Send" aria-label="Send">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+                </button>
+            </div>
+            <p class="cs-note">A study coach, not a therapist. If you're struggling, reach out to someone you trust.</p>
+        </div>
+    </aside>
+
+    <div class="app-main flex flex-col px-6 md:px-10 py-6">
 
     <!-- Header -->
     <header class="flex items-center justify-between w-full">
@@ -32,10 +79,18 @@
     <!-- Timer -->
     <main class="flex-1 flex flex-col items-center justify-center py-8">
 
+        <section class="timer-card" style="position:relative;">
+        <!-- Desk check: red "away" timer beside the timer box, while you're away -->
+        <div id="deskAlarm" class="hidden desk-away">
+            <div class="desk-away-label">Away from desk</div>
+            <div id="deskAlarmTime" class="desk-away-time tnum">00:00</div>
+            <div id="deskAwayNote" class="desk-away-note">Come back. The alarm stops when the camera sees you.</div>
+        </div>
         <div class="flex items-center gap-3 mb-6">
             <span id="sessionLabel" class="tag">Focus Session</span>
             <span id="modeBadge" class="tag tag-quiet">College · Level 2</span>
             <span id="demoBadge" class="tag tag-sand hidden" title="DEMO_MODE=1 in .env: short timers for live demos">Demo mode</span>
+            <span id="deskBadge" class="tag tag-quiet hidden" title="Desk check: the webcam looks for you once a second, on this computer only. Nothing is saved.">Desk check on</span>
         </div>
 
         <div id="timerWrap" class="timer-wrap">
@@ -58,12 +113,24 @@
         </div>
 
         <p id="statusLine" class="text-sm muted h-5 mt-5 text-center"></p>
+        </section>
 
         <div class="card px-6 py-4 mt-6 w-full max-w-lg text-center">
             <div class="text-[11px] faint uppercase tracking-[0.14em] mb-1.5">Current intention</div>
             <div id="activeGoalText" class="serif text-xl leading-snug">Loading…</div>
         </div>
     </main>
+
+    <!-- Desk check: small live camera preview (frames stay on this computer) -->
+    <div id="deskCam" class="hidden" style="position:fixed; right:20px; bottom:20px; width:200px; z-index:30;">
+        <div class="card p-2">
+            <img id="deskCamImg" alt="Camera preview" class="rounded-lg w-full" style="aspect-ratio:4/3; object-fit:cover; background:#000;">
+            <div class="flex items-center justify-between mt-1.5 px-1">
+                <span id="deskCamText" class="text-[11px] muted">Starting camera…</span>
+                <button type="button" onclick="hideDeskCam()" class="text-[11px] faint" title="Hide the preview (the desk check keeps running)">Hide</button>
+            </div>
+        </div>
+    </div>
 
     <!-- Footer actions -->
     <footer class="flex justify-center gap-3 pb-2">
@@ -74,41 +141,8 @@
         <button onclick="alert('Leaderboard coming soon!')" class="btn btn-ghost">Leaderboard</button>
     </footer>
 
-    <!-- AI Coach drawer -->
-    <div id="aiModal" class="hidden fixed inset-0 z-50 flex justify-end drawer-backdrop" onclick="if (event.target === this) closeAiModal()">
-        <aside class="drawer w-full max-w-[460px] h-full flex flex-col">
-            <div class="flex items-start justify-between px-6 pt-6 pb-4 divider" style="border-top:none;border-bottom:1px solid var(--line)">
-                <div class="flex items-center gap-3">
-                    <div class="coach-avatar"><span></span></div>
-                    <div>
-                        <h2 class="serif text-lg leading-tight">Your focus coach</h2>
-                        <p class="text-xs muted">Tell me what's getting in the way. No judgement.</p>
-                    </div>
-                </div>
-                <button onclick="closeAiModal()" class="btn btn-ghost btn-icon" style="width:36px;height:36px" title="Close">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                </button>
-            </div>
-
-            <div id="chatMessages" class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
-                <div class="flex gap-3 items-end fade-up">
-                    <div class="coach-avatar"><span></span></div>
-                    <div class="bubble bubble-ai">
-                        Hey, I'm here. What's getting in the way of studying today? Procrastination, stress, your phone, anything goes.
-                    </div>
-                </div>
-            </div>
-
-            <div class="px-6 pb-6 pt-3" style="border-top:1px solid var(--line)">
-                <div class="flex gap-2">
-                    <input id="chatInput" type="text" placeholder="Describe what's stopping you…" autocomplete="off"
-                           onkeydown="if(event.key === 'Enter') sendChatMessage()" class="input">
-                    <button onclick="sendChatMessage()" class="btn btn-primary">Send</button>
-                </div>
-                <p class="text-[11px] faint mt-2">A study coach, not a therapist. If you're struggling, reach out to someone you trust.</p>
-            </div>
-        </aside>
-    </div>
+    </div><!-- /app-main -->
+</div><!-- /app-layout -->
 
     <script>
         const api = () => window.pywebview.api;
@@ -131,6 +165,8 @@
         let sessionStartMs = 0;      // when this session was first started, sent to the log
         let pausesUsed = 0;
         let pauseTimeout = null;     // auto-resumes a focus block after MAX_PAUSE_SEC
+        let pausedByDesk = false;    // the desk check paused the timer because you left; it resumes when you're back
+        let lastDeskState = "off";
         let focusCount = 0;
         let chatHistory = [];
         let aiGoals = [];
@@ -156,6 +192,11 @@
             document.getElementById('activeGoalText').innerText = config.goal || "No intention set yet";
             document.getElementById('modeBadge').innerText = `${config.mode} · Level ${config.strictness}`;
             document.getElementById('demoBadge').classList.toggle('hidden', !config.demoMode);
+            document.getElementById('deskBadge').classList.toggle('hidden', !config.deskCheck);
+            if (config.deskCheck) {
+                setInterval(checkDesk, 1000);
+                setInterval(updateDeskCam, 80);
+            }
             loadSession("FOCUS");
         }
 
@@ -186,6 +227,9 @@
             elapsedSec = 0;
             sessionStartMs = 0;
             pausesUsed = 0;
+            pausedByDesk = false;
+            tooDarkShown = false;
+            try { api().clear_progress(); } catch (e) {}   // nothing in progress: quitting needs no warning
 
             const isBreak = type !== "FOCUS";
             const label = document.getElementById('sessionLabel');
@@ -196,6 +240,7 @@
             setRunningVisual(false);
             setButton(isBreak ? "Start break" : "Start", "start");
             updateDisplay();
+            updateLock();
         }
 
         // ---------- display ----------
@@ -228,6 +273,27 @@
             document.getElementById('statusLine').innerText = text || "";
         }
 
+        // Level 3 (School): once a focus block has started it can't be stopped early or left
+        function isLocked() {
+            return String(config.strictness).replace('-', '') === "3" && sessionType === "FOCUS" && sessionStartMs > 0;
+        }
+
+        function updateLock() {
+            const locked = isLocked();
+            const btn = document.getElementById('resetBtn');
+            btn.disabled = locked;
+            btn.title = locked ? "Level 3: no early stop. The block ends when the timer does." : "Reset (logged if it ran 1+ min)";
+        }
+
+        // Setup / Timetable links would end the block, so Level 3 keeps you on the timer
+        document.addEventListener('click', e => {
+            const link = e.target.closest('a[href]');
+            if (link && isLocked()) {
+                e.preventDefault();
+                setStatus("Level 3: stay on the timer until this focus block ends.");
+            }
+        }, true);
+
         function reportProgress() {
             if (!sessionStartMs) return;
             try { api().note_progress(sessionType, plannedSec, activeSeconds(), sessionStartMs); } catch (e) {}
@@ -240,7 +306,35 @@
         // ---------- controls ----------
         async function toggleTimer() {
             if (isRunning) return pauseTimer();
+            if (!sessionStartMs && sessionType === "FOCUS" && !(await startWarnings())) return;
             return startTimer();
+        }
+
+        // Warnings before a new focus block: Level 3 is strict, and another app may be using the camera
+        async function startWarnings() {
+            if (String(config.strictness).replace('-', '') === "3") {
+                const go = await askUser({
+                    title: "Level 3: strict mode",
+                    points: ["No pauses and no early stop until this focus block ends.",
+                             "Setup, Timetable and Insights stay locked until the timer finishes."],
+                    ok: "Start", cancel: "Not now", danger: true,
+                });
+                if (!go) return false;
+            }
+            if (config.deskCheck) {
+                let apps = [];
+                try { apps = await api().get_camera_conflicts(); } catch (e) {}
+                if (apps && apps.length) {
+                    const go = await askUser({
+                        title: `${apps.join(", ")} may be using your camera`,
+                        points: ["The desk check needs the camera to see you. Close the app or end its call first.",
+                                 "If the camera can't see you, the alarm may go off while you're sitting here."],
+                        ok: "Start anyway", cancel: "Not now",
+                    });
+                    if (!go) return false;
+                }
+            }
+            return true;
         }
 
         async function startTimer() {
@@ -251,7 +345,10 @@
                 setStatus("Allow Accessibility access for DriftSync, then press Start again.");
                 return;
             }
+            const fresh = !sessionStartMs;
             if (!sessionStartMs) sessionStartMs = Date.now();
+            pausedByDesk = false;
+            updateLock();
             isRunning = true;
             segmentStart = Date.now();
             endAt = Date.now() + remainingSec * 1000;
@@ -259,10 +356,14 @@
             setRunningVisual(true);
             clearTimeout(pauseTimeout);
             const shieldOn = (config.blocklist || []).length > 0;
+            const level = String(config.strictness).replace('-', '');
             setStatus(sessionType !== "FOCUS" ? "Break time. Blocking is off, rest your eyes."
-                : shieldOn ? "Distraction shield is on. You've got this."
-                : "Your blocklist is empty, so nothing is being blocked. Add apps in Setup.");
+                : !shieldOn ? "Your blocklist is empty, so nothing is being blocked. Add apps in Setup."
+                : level === "1" ? "Soft reminders are on. Nothing is locked, but drifts are logged."
+                : level === "3" ? "Strict mode: no pauses and no early stop until the timer ends."
+                : "Distraction shield is on. You've got this.");
 
+            if (fresh) reportProgress();   // so quitting now asks first
             clearInterval(timerInterval);
             let ticks = 0;
             timerInterval = setInterval(() => {
@@ -277,7 +378,7 @@
                 const limit = PAUSE_LIMITS[String(config.strictness)] ?? 2;
                 if (pausesUsed >= limit) {
                     setStatus(limit === 0
-                        ? "No pauses at this level. Use reset to stop (it is logged as Stopped Early)."
+                        ? "Level 3 has no pauses. Stay with it; the block ends when the timer does."
                         : `Pause limit reached (${limit}). Use reset to stop early.`);
                     return;
                 }
@@ -304,6 +405,143 @@
             }
         }
 
+        // ---------- desk check (webcam) ----------
+        const DESK_BADGES = {
+            off: ["Desk check on", "tag tag-quiet"],
+            present: ["At desk ✓", "tag"],
+            warning: ["Are you there?", "tag tag-sand"],
+            away: ["Away from desk", "tag tag-coral"],
+            unavailable: ["Camera off", "tag tag-quiet"],
+        };
+
+        let tooDarkShown = false;
+        let awaySinceMs = 0;   // when you were last seen, for the red away timer
+        function tickAwayTimer() {
+            if (!awaySinceMs) return;
+            const sec = Math.max(0, Math.floor((Date.now() - awaySinceMs) / 1000));
+            document.getElementById('deskAlarmTime').innerText =
+                `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+        }
+        setInterval(tickAwayTimer, 250);
+
+        let deskBusy = false;   // a check can await a pause/resume; don't let the next one overlap it
+        async function checkDesk() {
+            if (deskBusy) return;
+            deskBusy = true;
+            try { await deskStep(); } finally { deskBusy = false; }
+        }
+
+        async function deskStep() {
+            let s;
+            try { s = await api().get_desk_status(true); } catch (e) { return; }
+            if (!s || !s.enabled) return;
+            const badge = document.getElementById('deskBadge');
+            let [text, cls] = DESK_BADGES[s.state] || DESK_BADGES.off;
+            if (s.state === "present" && s.seenBy === "body") text = "At desk ✓ (head down)";
+            badge.innerText = text;
+            badge.className = cls;
+            badge.title = s.error || "Desk check: the webcam looks for you once a second, on this computer only. Nothing is saved.";
+
+            const was = lastDeskState;
+            lastDeskState = s.state;
+            const awayNow = s.state === "warning" || s.state === "away";   // counts from the moment you leave
+            if (awayNow && !awaySinceMs) awaySinceMs = Date.now() - (s.awayFor || 0) * 1000;
+            if (!awayNow) awaySinceMs = 0;
+            document.getElementById('deskAlarm').classList.toggle('hidden', !awayNow);
+            document.getElementById('deskAwayNote').innerText = s.state === "warning"
+                ? `Out of view. The alarm starts in ${s.pauseIn ?? 0}s.`
+                : "Come back. The alarm stops when the camera sees you.";
+            tickAwayTimer();
+            if (sessionType !== "FOCUS") return;
+
+            if (s.endRequested) return deskEndBlock();
+            if (isRunning && s.tooDark && !tooDarkShown) {
+                tooDarkShown = true;
+                setStatus("It's too dark for the camera to see you. Turn on a light, or the alarm may go off.");
+            }
+            if (pausedByDesk && !isRunning) {
+                if (s.state === "present") {
+                    document.getElementById('deskAlarm').classList.add('hidden');
+                    awaySinceMs = 0;
+                    pausedByDesk = false;   // if the start fails (e.g. a permission popup), don't retry every second
+                    await startTimer();
+                    if (!isRunning) {   // couldn't resume: release the desk hold so the camera turns off
+                        try { await api().set_timer_state(false, sessionType); } catch (e) {}
+                    }
+                    setStatus("Welcome back. The timer picked up where it stopped.");
+                }
+                return;
+            }
+            if (!isRunning) return;
+            if (s.hold) return deskPause();
+            if (s.state === "warning") {
+                setStatus(s.keepsRunning ? `Are you still there? This counts as a drift in ${s.pauseIn}s.`
+                                         : `Are you still there? The timer pauses in ${s.pauseIn}s.`);
+            } else if (s.state === "away" && s.keepsRunning) {
+                setStatus("You left your desk. Level 3 keeps the timer running, and this counts as a drift.");
+            } else if (s.state === "present" && (was === "warning" || was === "away")) {
+                setStatus("Welcome back.");
+            } else if (s.state === "unavailable" && was !== "unavailable") {
+                setStatus(s.error || "Camera not available, so the desk check is off for now.");
+            }
+        }
+
+        // Live preview while the camera is on (focus block running, or paused because you left)
+        let deskCamHidden = false;
+        let deskCamBusy = false;
+        function hideDeskCam() {
+            deskCamHidden = true;
+            document.getElementById('deskCam').classList.add('hidden');
+        }
+
+        async function updateDeskCam() {
+            const box = document.getElementById('deskCam');
+            const cameraOn = sessionType === "FOCUS" && (isRunning || pausedByDesk);
+            if (deskCamHidden || !cameraOn) { box.classList.add('hidden'); return; }
+            if (deskCamBusy) return;
+            deskCamBusy = true;
+            let r = null;
+            try { r = await api().get_desk_preview(); } catch (e) {}
+            deskCamBusy = false;
+            if (!r) return;
+            box.classList.remove('hidden');
+            const text = document.getElementById('deskCamText');
+            if (r.image) document.getElementById('deskCamImg').src = r.image;
+            text.innerText = r.error ? "Camera off" : !r.image ? "Starting camera…" : r.faces > 0 ? "You ✓ (not saved)" : "No face seen";
+        }
+
+        // "End this focus block" on the red screen: works at every level (even Level 3), logged as Stopped Early
+        async function deskEndBlock() {
+            clearInterval(timerInterval);
+            clearTimeout(pauseTimeout);
+            const done = activeSeconds();
+            isRunning = false;
+            pausedByDesk = false;
+            awaySinceMs = 0;
+            document.getElementById('deskAlarm').classList.add('hidden');
+            try { await api().set_timer_state(false, sessionType); } catch (e) {}
+            if (sessionStartMs && done >= 60) {
+                try { await api().log_session(sessionType, plannedSec, done, sessionStartMs); } catch (e) {}
+            }
+            loadSession("FOCUS");
+            setStatus("Focus block ended from the alarm screen.");
+        }
+
+        // Like a pause, but it doesn't use up your pauses and has no 5-minute limit: it waits for you
+        async function deskPause() {
+            clearInterval(timerInterval);
+            clearTimeout(pauseTimeout);
+            elapsedSec = activeSeconds();
+            isRunning = false;
+            pausedByDesk = true;
+            updateDisplay();
+            setRunningVisual(false);
+            try { await api().set_timer_state(false, sessionType, true); } catch (e) {}
+            reportProgress();
+            setButton("Resume", "start");
+            setStatus("Paused: you left your desk. The timer resumes when you're back.");
+        }
+
         async function completeSession() {
             clearInterval(timerInterval);
             if (!isRunning) return;
@@ -326,6 +564,10 @@
 
         // Reset: stops the session (logged if it ran at least a minute). During a break it skips to focus.
         async function resetTimer() {
+            if (isLocked()) {
+                setStatus("Level 3 has no early stop. The block ends when the timer does.");
+                return;
+            }
             clearInterval(timerInterval);
             clearTimeout(pauseTimeout);
             const done = activeSeconds();

@@ -1,0 +1,18 @@
+[
+  { "jobReqId": "1021", "title": "Operations Coordinator", "department": "Operations", "location": "Bengaluru", "openings": 2,
+    "description": "Coordinate daily operations, keep the team schedule, handle vendor and supplier relationships and track the monthly budget." },
+  { "jobReqId": "1022", "title": "Customer Success Associate", "department": "Customer Experience", "location": "Hyderabad", "openings": 4,
+    "description": "Be the first contact for customers, resolve complaints, explain our products clearly and keep accurate records of every call." },
+  { "jobReqId": "1023", "title": "Event and Community Coordinator", "department": "Marketing", "location": "Mumbai", "openings": 1,
+    "description": "Organize customer events and festivals, negotiate with vendors, manage the event budget and lead a small team of volunteers." },
+  { "jobReqId": "1024", "title": "Finance Assistant", "department": "Finance", "location": "Pune", "openings": 2,
+    "description": "Maintain the ledger and accounts in Excel spreadsheets, prepare budget reports and record payments on time." },
+  { "jobReqId": "1025", "title": "Training Coordinator", "department": "Human Resources", "location": "Remote", "openings": 1,
+    "description": "Schedule training sessions, communicate with trainers and new joiners, mentor first-time learners and solve day-to-day problems." },
+  { "jobReqId": "1026", "title": "Store Team Lead", "department": "Retail", "location": "Lucknow", "openings": 3,
+    "description": "Lead a team of store helpers, serve customers, negotiate better prices with suppliers and keep the stock register." },
+  { "jobReqId": "1027", "title": "Project Coordinator", "department": "Projects", "location": "Chennai", "openings": 1,
+    "description": "Track project deadlines, run weekly meetings, keep the project data in spreadsheets and communicate status to the team." },
+  { "jobReqId": "1028", "title": "Data Entry Operator (part-time)", "department": "Back Office", "location": "Indore", "openings": 5,
+    "description": "Accurate typing and data entry into records, finish daily batches on time, raise problems to the supervisor." }
+]

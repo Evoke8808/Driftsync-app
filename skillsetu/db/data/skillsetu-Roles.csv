@@ -1,0 +1,25 @@
+ID;title;company;location;description;salary;type;demand;automationRisk
+2a2b3c4d-0001-0001-0001-000000000001;Operations Coordinator;TechCorp India;Bengaluru;Coordinate daily operations, manage schedules, handle vendor relationships;₹4-6 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000002;Event Planner;EventPro;Mumbai;Plan and execute corporate events, manage budgets, coordinate with vendors;₹5-8 LPA;full-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000003;Administrative Assistant;GlobalCo;Remote;Provide administrative support, manage calendars, handle correspondence;₹3-4 LPA;remote;Medium;Medium
+2a2b3c4d-0001-0001-0001-000000000004;Customer Service Representative;ServiceFirst;Hyderabad;Handle customer inquiries, resolve issues, maintain satisfaction;₹2.5-4 LPA;full-time;High;High
+2a2b3c4d-0001-0001-0001-000000000005;Project Assistant;BuildRight;Pune;Support project managers, track progress, coordinate team activities;₹4-5 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000006;Data Entry Specialist;DataWorks;Remote;Enter and verify data, maintain records, generate reports;₹2-3 LPA;part-time;Low;High
+2a2b3c4d-0001-0001-0001-000000000007;Retail Store Associate;StyleBazaar;Chennai;Help shoppers, manage the counter and keep stock in order;₹2-3 LPA;full-time;High;Medium
+2a2b3c4d-0001-0001-0001-000000000008;Self-Help Group Coordinator;Pragati Foundation;Jaipur;Run village self-help groups: meetings, savings records and loan follow-ups;₹2.5-3.5 LPA;part-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000009;Microfinance Field Officer;Sahyog Microfinance;Lucknow;Visit women borrowers, explain loans, collect repayments and keep records;₹3-4 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000010;Accounts Assistant;Lekha Associates;Indore;Maintain day books, bills and simple accounts for small businesses;₹2.5-4 LPA;full-time;Medium;Medium
+2a2b3c4d-0001-0001-0001-000000000011;Front Office Executive;CareWell Clinics;Kochi;Greet patients, book appointments and handle queries at the front desk;₹2.5-3.5 LPA;full-time;High;Medium
+2a2b3c4d-0001-0001-0001-000000000012;Procurement Assistant;BuildRight;Pune;Compare vendor quotes, negotiate prices and track purchase orders;₹3.5-5 LPA;full-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000013;Customer Support Associate (Hindi);Seva Connect;Remote;Answer customer calls and chats in Hindi from home, a few hours a day;₹2-3 LPA;part-time;High;High
+2a2b3c4d-0001-0001-0001-000000000014;Kitchen and Catering Supervisor;Annapurna Caterers;Bengaluru;Lead a kitchen team, plan bulk cooking for events and control costs;₹3-4.5 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000015;School Office Coordinator;Vidya Public School;Jaipur;Manage timetables, parent communication and student records;₹2.5-3.5 LPA;part-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000016;Dispatch Coordinator;QuickShip Logistics;Delhi;Plan delivery routes and schedules, and solve delays with drivers;₹3-4.5 LPA;full-time;High;Medium
+2a2b3c4d-0001-0001-0001-000000000017;Online Store Assistant;Haath Se Crafts;Remote;Take WhatsApp and online orders, update the catalogue and reply to buyers;₹2-3 LPA;part-time;High;Medium
+2a2b3c4d-0001-0001-0001-000000000018;Wedding and Events Coordinator;Shubh Utsav Events;Jaipur;Plan weddings and functions, book vendors and run the day on time;₹3-5 LPA;full-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000019;Health Outreach Coordinator;Swasthya Sathi;Bhubaneswar;Lead community health volunteers, plan village visits and keep visit records;₹2.5-3.5 LPA;full-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000020;Security Supervisor;Shield Facility Services;Pune;Lead a team of security guards across shifts, keep incident and visitor records, and handle emergencies;₹3.5-5 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000021;Warehouse and Stores Supervisor;Bharat Logistics Park;Bengaluru;Run a warehouse: stock registers, issues and receipts, a small team and daily dispatch plans;₹3.5-5.5 LPA;full-time;High;Medium
+2a2b3c4d-0001-0001-0001-000000000022;Escalations and Resolution Specialist;ServiceFirst;Hyderabad;Handle the complex complaints a chatbot can't: angry customers, billing disputes and refunds;₹3.5-5 LPA;full-time;High;Low
+2a2b3c4d-0001-0001-0001-000000000023;Support Team Coach;ServiceFirst;Hyderabad;Train and coach new support agents, plan shift rosters and run daily team huddles;₹4-5.5 LPA;full-time;Medium;Low
+2a2b3c4d-0001-0001-0001-000000000024;Data Quality Analyst;DataWorks;Remote;Check and clean data, find and fix errors, and build simple Excel reports;₹3-4.5 LPA;remote;Medium;Low

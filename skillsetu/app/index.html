@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SkillSetu · Skills to jobs</title>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    try {
+      document.documentElement.dataset.theme = localStorage.getItem('ss-theme') || 'light';
+      localStorage.removeItem('ss-look');   // only the SAP Fiori look is left
+    } catch (e) {}
+  </script>
+  <!-- SAP UI5 Web Components (Horizon theme), bundled locally in vendor/ -->
+  <script type="module">
+    import './vendor/ui5-webcomponents.js';
+    window.ui5SetTheme(document.documentElement.dataset.theme === 'dark' ? 'sap_horizon_dark' : 'sap_horizon');
+  </script>
+</head>
+<body>
+  <header class="shell">
+    <ui5-shellbar id="shellbar" primary-title="SkillSetu" secondary-title="Skills-first hiring on SAP BTP">
+      <img slot="logo" src="logo.svg" alt="SkillSetu">
+      <ui5-shellbar-item id="themeToggle" icon="dark-mode" text="Light or dark theme"></ui5-shellbar-item>
+      <ui5-avatar slot="profile" id="meAvatar" icon="person-placeholder" color-scheme="Accent6"></ui5-avatar>
+    </ui5-shellbar>
+    <nav class="tabs" id="navLinks" aria-label="Main">
+      <a href="#/overview" data-route="overview">Overview</a>
+      <a href="#/" data-route="home">Home</a>
+      <a href="#/journey" data-route="journey">My Journey</a>
+      <a href="#/jobs" data-route="jobs">Jobs</a>
+      <a href="#/courses" data-route="courses">Courses</a>
+      <a href="#/counsellor" data-route="counsellor">Review queue</a>
+      <a href="#/impact" data-route="impact">Impact</a>
+      <a href="#/bias-audit" data-route="bias-audit">Bias audit</a>
+      <a href="#/company-portal" data-route="company-portal">Company data</a>
+      <a href="#/about" data-route="about">About</a>
+    </nav>
+  </header>
+
+  <main id="view" class="view"></main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <span>SkillSetu · Up Down Coders · SAP Hackfest 2026</span>
+      <span class="muted">Built on SAP CAP · HANA Cloud · Generative AI Hub · <a href="api-docs.html" style="text-decoration:underline">Integration API</a></span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast" role="status"></div>
+  <script src="auth-header.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

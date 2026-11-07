@@ -1,0 +1,58 @@
+{
+  "name": "skillsetu",
+  "version": "1.0.0",
+  "description": "SkillSetu - AI shouldn't decide who gets left behind",
+  "repository": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@cap-js/hana": "^3.1.2",
+    "@cap-js/sqlite": "^3",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@sap-ai-sdk/orchestration": "^2",
+    "@sap/cds": "^10",
+    "compression": "^1.8.2",
+    "express": "^4",
+    "hdb": "^0.19.12",
+    "zod": "^4.6.7"
+  },
+  "scripts": {
+    "start": "node start.js",
+    "watch": "cds watch",
+    "sap:check": "node mcp/sap/check.js",
+    "sap:hana-setup": "node mcp/sap/hana-setup.js",
+    "build": "npm install && cds-deploy",
+    "start:cf": "node start.js",
+    "start:sqlite": "cds-serve"
+  },
+  "cds": {
+    "requires": {
+      "db": {
+        "kind": "sqlite",
+        "credentials": {
+          "url": "db.sqlite"
+        },
+        "pool": {
+          "min": 1,
+          "max": 4
+        }
+      },
+      "SFRecruiting": {
+        "[tenant]": {
+          "kind": "odata-v2",
+          "model": "srv/external/SFRecruiting",
+          "credentials": {
+            "destination": "SFSF_RECRUITING",
+            "path": "/odata/v2"
+          }
+        }
+      },
+      "auth": {
+        "kind": "mocked"
+      }
+    }
+  },
+  "engines": {
+    "node": "22.x"
+  }
+}
